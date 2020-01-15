@@ -115,6 +115,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="main.c" />
+    <ClCompile Include="server.c" />
+    <ClCompile Include="socketSendReceive.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="others.h" />
+    <ClInclude Include="server.h" />
+    <ClInclude Include="socketS.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
