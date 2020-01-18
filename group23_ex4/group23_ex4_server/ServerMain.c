@@ -1,10 +1,13 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
+#include <stdio.h>
 #include <WinSock2.h>
+#include <stdbool.h>
 #include "ServerMain.h"
 #include "Commons.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
+#define NUM_OF_WORKER_THREADS 2
 
 int RunServer(int port_number)
 {
@@ -15,6 +18,11 @@ int RunServer(int port_number)
 	SOCKADDR_IN service;
 	int bind_result;
 	int listen_result;
+
+	HANDLE client_thread_handles[NUM_OF_WORKER_THREADS];
+	int client_thread_count;
+
+	SOCKET accept_socket;
 
 	// Initialize Winsock
 	startup_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
@@ -86,7 +94,23 @@ int RunServer(int port_number)
 		return SERVER_SOCKET_LISTEN_FAILED;
 	}
 
+	for (client_thread_count = 0; client_thread_count < NUM_OF_WORKER_THREADS; client_thread_count++)
+		client_thread_handles[client_thread_count] = NULL;
+
 	printf("Waiting for a client to connect...\n");
+
+	while (TRUE)
+	{
+		accept_socket = accept(server_socket, NULL, NULL);
+		if (accept_socket == INVALID_SOCKET)
+		{
+			printf("Accepting connection with client failed: %ld\n", WSAGetLastError());
+			// Clenup
+			return SERVER_ACCEPT_CONNECTION_FAILED;
+		}
+
+		printf("Client connected.\n");
+	}
 
 	return SERVER_SUCCESS;
 }
