@@ -1,0 +1,10 @@
+#ifndef COMMONS_H
+#define COMMONS_H
+
+typedef enum
+{
+	SERVER_SUCCESS,
+	SERVER_NOT_ENOUGH_CMD_ARGS
+} SERVER_EXIT_CODES;
+
+#endif

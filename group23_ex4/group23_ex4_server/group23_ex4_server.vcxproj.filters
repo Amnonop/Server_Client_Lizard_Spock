@@ -24,6 +24,9 @@
     <ClCompile Include="socketSendReceive.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ServerMain.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="others.h">
@@ -33,6 +36,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="socketS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Commons.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerMain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

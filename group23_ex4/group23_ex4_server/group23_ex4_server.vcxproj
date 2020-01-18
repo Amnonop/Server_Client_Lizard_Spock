@@ -117,11 +117,14 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="server.c" />
+    <ClCompile Include="ServerMain.c" />
     <ClCompile Include="socketSendReceive.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Commons.h" />
     <ClInclude Include="others.h" />
     <ClInclude Include="server.h" />
+    <ClInclude Include="ServerMain.h" />
     <ClInclude Include="socketS.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
