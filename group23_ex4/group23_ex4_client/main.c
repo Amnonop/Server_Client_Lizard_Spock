@@ -34,10 +34,10 @@ int main(int argc, char* argv[]) {
 	int exitcode = -1;
 
 	if (STRINGS_ARE_EQUAL(argv[1], "server")) // If we recived server, starting MainServer
-		MainServer(argv[2], argv[3]);
+		//MainServer(argv[2], argv[3]);
 
 	if (STRINGS_ARE_EQUAL(argv[1], "client")) // If we recived client, starting MainClient
-		exitcode = MainClient(argv[2], argv[3], argv[4], argv[5]);
+		//exitcode = MainClient(argv[2], argv[3], argv[4], argv[5]);
 
 	return exitcode; // Returns 0 if returned sucsessfuly, 0x555 else
 }

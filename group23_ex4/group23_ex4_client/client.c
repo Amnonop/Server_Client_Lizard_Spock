@@ -9,6 +9,8 @@
 #include "others.h"
 #include "SocketS.h"
 
+#define SERVER_ADDRESS_STR "127.0.0.1"
+
 
 //--> Global parameters
 SOCKET m_socket; // comuunication socket
