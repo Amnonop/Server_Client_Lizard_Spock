@@ -26,4 +26,10 @@ typedef struct Message {
 
 void MessageEval(Message *m, char *AcceptedStr);
 
+typedef struct Messages_1 {
+	char *message_type;
+	char *text;
+	char *parameters
+}Messages_1;
+
 #endif
