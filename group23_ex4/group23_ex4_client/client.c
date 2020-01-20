@@ -23,6 +23,8 @@ MsgQueue *msg_queue = NULL; // pointer to send message buffer
 
 CLIENT_STATE client_state = FIRST_CONNECTION;
 
+int PrintMainMenu();
+
 BOOL StringsEqual(const char* string_1, const char* string_2)
 {
 	return strcmp(string_1, string_2) == 0;
@@ -38,6 +40,8 @@ param_node_t* CreateNode(char* param_value)
 		value_length = strlen(param_value) + 1;
 		new_node->param_value = (char*)malloc(sizeof(char)*value_length);
 		strcpy_s(new_node->param_value, value_length, param_value);
+
+		new_node->next = NULL;
 	}
 	return new_node;
 }
@@ -81,10 +85,9 @@ int GetMessageStruct(message_t *message, char *raw_string)
 	// Initialize param linked list
 	message->parameters = NULL;
 
+	token = strtok_s(NULL, param_delim, &next_token);
 	while (token)
 	{
-		token = strtok_s(NULL, param_delim, &next_token);
-
 		// Add a new parameter node
 		// TODO: Handle the '\n' termination -> remove from the last parameter
 		message->parameters = AddNode(message->parameters, token);
@@ -92,6 +95,8 @@ int GetMessageStruct(message_t *message, char *raw_string)
 		{
 			// TODO: Allocation failed
 		}
+
+		token = strtok_s(NULL, param_delim, &next_token);
 	}
 }
 
@@ -139,6 +144,10 @@ static DWORD RecvDataThread(LPVOID lpParam)
 			if (STRINGS_ARE_EQUAL("SERVER_APPROVED", message->message_type))
 			{
 				client_state = SERVER_APPROVED;
+			}
+			else if (STRINGS_ARE_EQUAL("SERVER_MAIN_MENU", message->message_type))
+			{
+				client_state = MAIN_MENU;
 			}
 		}
 	//	else { // We recived a new message
@@ -295,6 +304,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 	client_thread_params_t* thread_params;
 	DWORD wait_code;
 	BOOL release_res;
+	int user_choice = -1;
 
 	thread_params = (client_thread_params_t*)lpParam;
 
@@ -308,7 +318,11 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				SendClientRequestMessage(thread_params->username);
 				break;
 			case SERVER_APPROVED:
-				printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
+				//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
+				break;
+			case MAIN_MENU:
+				PrintMainMenu();
+				scanf_s("%d", &user_choice);
 				break;
 			default:
 				break;
@@ -489,6 +503,22 @@ int SendClientRequestMessage(char* username)
 	int message_length;
 	char* message_string;
 	
+	// Build message string
+	message_length = strlen(message_name) + 1 + strlen(username) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s:%s\n", message_name, username);
+
+	// Send the message
+	EnqueueMsg(msg_queue, message_string);
+}
+
+int SendClientCPUMessage(char* username)
+{
+	char* message_name = "CLIENT_CPU";
+	int message_length;
+	char* message_string;
+
 	// Build message string
 	message_length = strlen(message_name) + 1 + strlen(username) + 2;
 	message_string = (char*)malloc(sizeof(char)*message_length);
@@ -770,4 +800,15 @@ void PrintToLogFile(FILE *ptr, char *format, char *message) {
 
 	release_res = ReleaseMutex(logfile_mutex);
 	if (release_res == FALSE) printf("Fail releasing logfile mutex");
+}
+
+int PrintMainMenu()
+{
+	printf("Choose what to do next:\n");
+	printf("1.	Play against another client\n");
+	printf("2.	Play against the server\n");
+	printf("3.	View the leaderboard\n");
+	printf("4.	Quit\n");
+
+	return 0;
 }

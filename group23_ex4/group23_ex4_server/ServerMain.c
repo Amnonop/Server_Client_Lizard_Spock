@@ -5,15 +5,70 @@
 #include <stdbool.h>
 #include "ServerMain.h"
 #include "Commons.h"
+#include "../Shared/MessageTools.h"
+#include "socketS.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 #define NUM_OF_WORKER_THREADS 2
 #define CLIENTS_MAX_NUM 2
 
+#define STRINGS_ARE_EQUAL( Str1, Str2 ) ( strcmp( (Str1), (Str2) ) == 0 )
+
+typedef struct client_params
+{
+	int client_number;
+} client_params_t;
+
 HANDLE client_thread_handles[NUM_OF_WORKER_THREADS];
 client_info_t connected_clients[CLIENTS_MAX_NUM];
-
+client_params_t client_params[CLIENTS_MAX_NUM];
+TransferResult_t SendRes;
 static DWORD ClientThread(LPVOID thread_params);
+
+int SendServerApprovedMessage(SOCKET player)
+{
+	char* message_name = "SERVER_APPROVED";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	printf("Sending message: %s\n", message_string);
+
+	SendRes = SendString(message_name, player);
+	if (SendRes == TRNS_FAILED)
+	{
+		printf("Service socket error while writing, closing thread.\n");
+		closesocket(player);
+	}
+}
+
+int SendServerMenuMessage(SOCKET player)
+{
+	char* message_name = "SERVER_MAIN_MENU";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	printf("Sending message: %s\n", message_string);
+
+	SendRes = SendString(message_name, player);
+	if (SendRes == TRNS_FAILED)
+	{
+		printf("Service socket error while writing, closing thread.\n");
+		closesocket(player);
+	}
+}
+
 
 int RunServer(int port_number)
 {
@@ -121,17 +176,19 @@ int RunServer(int port_number)
 		if (connected_clients_count < CLIENTS_MAX_NUM)
 		{
 			connected_clients[connected_clients_count].socket = accept_socket;
-			connected_clients_count++;
 
 			// Open a thread for the client
+			client_params[connected_clients_count].client_number = connected_clients_count;
 			client_thread_handles[connected_clients_count] = CreateThread(
 				NULL, 
 				0, 
 				(LPTHREAD_START_ROUTINE)ClientThread, 
-				NULL, 
+				(LPVOID)&(client_params[connected_clients_count]), 
 				0, 
 				NULL);
 			// TODO: Check if null
+
+			connected_clients_count++;
 		}
 	}
 
@@ -140,5 +197,54 @@ int RunServer(int port_number)
 
 static DWORD ClientThread(LPVOID thread_params)
 {
+	//char SendStr[SEND_STR_SIZE];
+	BOOL Done = FALSE;
+	TransferResult_t SendRes;
+	TransferResult_t RecvRes;
+	int found_place;
+	//char str_to_send[MAX_MESSAGE_SIZE];
 
+	client_params_t* client_params;
+	message_t* message;
+	char* accepted_string = NULL;
+
+	client_params = (client_params_t*)thread_params;
+	
+	message= (message_t*)malloc(sizeof(message_t));
+	if (message == NULL) 
+	{
+		printf("memory allocation failed");
+		//exit(ERROR_CODE);
+	}
+
+	// waiting for new message
+	RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
+	if (RecvRes == TRNS_FAILED) {
+		printf("Player disconnected. Ending communication.\n");
+		//closesocket(players_sockets[player_number]);
+		//SetEvent(DiscconectThem);
+		return -1;
+	}
+	else if (RecvRes == TRNS_DISCONNECTED) {
+		printf("Player disconnected. Ending communication.\n");
+		//closesocket(players_sockets[player_number]);
+		//SetEvent(DiscconectThem);
+		return -1;
+	}
+
+	// breake message into message type and it's other parts
+	printf("Received message: %s\n", accepted_string);
+	GetMessageStruct(message, accepted_string);
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_REQUEST")) 
+	{// if it is a new request to join the game
+		SendServerApprovedMessage(connected_clients[client_params->client_number].socket);
+		SendServerMenuMessage(connected_clients[client_params->client_number].socket);
+		//we_can_start = 1;
+		//SetEvent(GameManagerHandle);
+
+	}
+		
+	
+	free(message);
 }
