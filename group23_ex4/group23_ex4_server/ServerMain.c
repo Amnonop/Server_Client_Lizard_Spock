@@ -8,6 +8,12 @@
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 #define NUM_OF_WORKER_THREADS 2
+#define CLIENTS_MAX_NUM 2
+
+HANDLE client_thread_handles[NUM_OF_WORKER_THREADS];
+client_info_t connected_clients[CLIENTS_MAX_NUM];
+
+static DWORD ClientThread(LPVOID thread_params);
 
 int RunServer(int port_number)
 {
@@ -19,8 +25,9 @@ int RunServer(int port_number)
 	int bind_result;
 	int listen_result;
 
-	HANDLE client_thread_handles[NUM_OF_WORKER_THREADS];
+	int thread_index;
 	int client_thread_count;
+	int connected_clients_count = 0;
 
 	SOCKET accept_socket;
 
@@ -110,7 +117,28 @@ int RunServer(int port_number)
 		}
 
 		printf("Client connected.\n");
+
+		if (connected_clients_count < CLIENTS_MAX_NUM)
+		{
+			connected_clients[connected_clients_count].socket = accept_socket;
+			connected_clients_count++;
+
+			// Open a thread for the client
+			client_thread_handles[connected_clients_count] = CreateThread(
+				NULL, 
+				0, 
+				(LPTHREAD_START_ROUTINE)ClientThread, 
+				NULL, 
+				0, 
+				NULL);
+			// TODO: Check if null
+		}
 	}
 
 	return SERVER_SUCCESS;
+}
+
+static DWORD ClientThread(LPVOID thread_params)
+{
+
 }

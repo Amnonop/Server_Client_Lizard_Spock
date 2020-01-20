@@ -27,6 +27,8 @@
 typedef struct client_thread_params 
 {
 	char* username;
+	char* server_ip;
+	int server_port;
 } client_thread_params_t;
 
 // Struct which contains a message (in MsgQueue) sent from user application thread to send thread: <char pointer data - string> <pointer to next>

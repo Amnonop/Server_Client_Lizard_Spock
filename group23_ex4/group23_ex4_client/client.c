@@ -23,11 +23,16 @@ MsgQueue *msg_queue = NULL; // pointer to send message buffer
 
 CLIENT_STATE client_state = FIRST_CONNECTION;
 
-parameters_t* CreateNode(char* param_value)
+BOOL StringsEqual(const char* string_1, const char* string_2)
+{
+	return strcmp(string_1, string_2) == 0;
+}
+
+param_node_t* CreateNode(char* param_value)
 {
 	int value_length;
 
-	parameters_t* new_node = (parameters_t*)malloc(sizeof(parameters_t));
+	param_node_t* new_node = (param_node_t*)malloc(sizeof(param_node_t));
 	if (new_node != NULL)
 	{
 		value_length = strlen(param_value) + 1;
@@ -35,6 +40,27 @@ parameters_t* CreateNode(char* param_value)
 		strcpy_s(new_node->param_value, value_length, param_value);
 	}
 	return new_node;
+}
+
+param_node_t* AddNode(param_node_t* head, char* param_value)
+{
+	param_node_t* tail;
+	param_node_t* new_node;
+
+	new_node = CreateNode(param_value);
+	if (new_node == NULL)
+		return NULL;
+
+	// List is empty
+	if (head == NULL)
+		return new_node;
+
+	tail = head;
+	while (tail->next != NULL)
+		tail = tail->next;
+	
+	tail->next = new_node;
+	return head;
 }
 
 //Function that gets the raw message and break it into the Message struct without :/;
@@ -46,43 +72,26 @@ int GetMessageStruct(message_t *message, char *raw_string)
 	char* token;
 	char* next_token;
 	int message_type_length;
-	parameters_t* param_node = NULL;
 
 	token = strtok_s(raw_string, message_type_delim, &next_token);
 	message_type_length = strlen(token) + 1;
 	message->message_type = (char*)malloc(sizeof(char)*message_type_length);
 	strcpy_s(message->message_type, message_type_length, token);
 
+	// Initialize param linked list
+	message->parameters = NULL;
+
 	while (token)
 	{
 		token = strtok_s(NULL, param_delim, &next_token);
 
 		// Add a new parameter node
-		
-	}
-
-	char AcceptedStrHelp[MAX_MSG];
-	strcpy(AcceptedStrHelp, AcceptedStr);
-	Parameters *iter = malloc(sizeof(Parameters));
-	m->message_type = malloc(sizeof(char) * 100);
-	m->parameters = malloc(sizeof(Parameters));
-	m->parameters->parameter = malloc(sizeof(char) * 100);
-	m->parameters->next = NULL;
-	char *message = strtok(AcceptedStrHelp, ":");
-	strcpy(m->message_type, message);
-	iter = m->parameters;
-	
-	while (message != NULL) {
-		message = strtok(NULL, ";");
-		if (message == NULL)
+		// TODO: Handle the '\n' termination -> remove from the last parameter
+		message->parameters = AddNode(message->parameters, token);
+		if (message->parameters == NULL)
 		{
-			iter->parameter = NULL;
-			continue;
+			// TODO: Allocation failed
 		}
-		strcpy(iter->parameter, message);
-		iter->next = malloc(sizeof(Parameters));
-		iter = iter->next;
-		iter->parameter = malloc(sizeof(char) * 100);
 	}
 }
 
@@ -91,16 +100,16 @@ static DWORD RecvDataThread(LPVOID lpParam)
 {
 	TransferResult_t receive_result;
 	char* accepted_string = NULL;
-	struct Message *message = NULL;
+	message_t* message = NULL;
 	int board[BOARD_HEIGHT][BOARD_WIDTH] = { 0 }, type = 0;
 	char input[MAX_LINE], *send_message = NULL;
 	client_thread_params_t *info = NULL;
 	DWORD wait_code;
 	BOOL release_res;
 
-	info = (client_thread_params_t *)lpParam;
+	info = (client_thread_params_t*)lpParam;
 
-	message = (struct Message*)malloc(sizeof(struct Message));
+	message = (message_t*)malloc(sizeof(message_t));
 
 	while (1)
 	{
@@ -122,7 +131,15 @@ static DWORD RecvDataThread(LPVOID lpParam)
 		}
 		else
 		{
+			printf("Received a message from the server: %s\n", accepted_string);
+
 			// Check the received message
+			GetMessageStruct(message, accepted_string);
+
+			if (STRINGS_ARE_EQUAL("SERVER_APPROVED", message->message_type))
+			{
+				client_state = SERVER_APPROVED;
+			}
 		}
 	//	else { // We recived a new message
 	//		MessageEval(message, AcceptedStr); // Deconstructing the message (AcceptedStr)
@@ -258,6 +275,7 @@ static DWORD SendDataThread(void)
 		if (STRINGS_ARE_EQUAL(new_msg, "exit"))
 			return 0; //"exit" signals an exit from the client side
 
+		printf("Sending message: %s\n", new_msg);
 		SendRes = SendString(new_msg, m_socket);
 
 		if (SendRes == TRNS_FAILED)
@@ -286,66 +304,69 @@ static DWORD ApplicationThread(LPVOID lpParam)
 		{
 			case FIRST_CONNECTION:
 				// Send CLIENT_REQUEST message with username to server
-				SendClientRequestMessage(thread_params->username);
 				client_state = WAITING_SERVER_APPROVAL;
+				SendClientRequestMessage(thread_params->username);
+				break;
+			case SERVER_APPROVED:
+				printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
 				break;
 			default:
 				break;
 		}
 		
-		if ((game_started == 0) && (user_accepted == 0) && (run == 0)) // Username input for user
-		{
-			//run++;
-			//strcpy(my_username, input); //Saving my username
-			//send_message = ConstructMessage(input, "username"); //Constructing the message to send to the server
-			////----->sending to buffer
-			//EnqueueMsg(msg_queue, send_message);
+		//if ((game_started == 0) && (user_accepted == 0) && (run == 0)) // Username input for user
+		//{
+		//	//run++;
+		//	//strcpy(my_username, input); //Saving my username
+		//	//send_message = ConstructMessage(input, "username"); //Constructing the message to send to the server
+		//	////----->sending to buffer
+		//	//EnqueueMsg(msg_queue, send_message);
 
-			////---> Writing to logfile
-			//PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message);
+		//	////---> Writing to logfile
+		//	//PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message);
 
-		}
-		if ((game_started == 1) && (user_accepted == 1)) { //Game started!
-			if (STRINGS_ARE_EQUAL(info->input_mode, "human")) { // If we are in human mode
-				gets_s(input, sizeof(input)); //Reading a string from the keyboard
+		//}
+		//if ((game_started == 1) && (user_accepted == 1)) { //Game started!
+		//	if (STRINGS_ARE_EQUAL(info->input_mode, "human")) { // If we are in human mode
+		//		gets_s(input, sizeof(input)); //Reading a string from the keyboard
 
-				type = MessageType(input); // Checking the type of the input (play or message)
+		//		type = MessageType(input); // Checking the type of the input (play or message)
 
-				//----> Play input
-				if (type == 1) {
-					send_message = ConstructMessage(input, "play"); //Constructing the message to send to the server
-					//-> send play to send buffer
-					EnqueueMsg(msg_queue, send_message);
-				}
-				//----> Exit input
-				else if (STRINGS_ARE_EQUAL(input, "exit")) {
-					//-> send exit to send buffer
-					EnqueueMsg(msg_queue, send_message);
+		//		//----> Play input
+		//		if (type == 1) {
+		//			send_message = ConstructMessage(input, "play"); //Constructing the message to send to the server
+		//			//-> send play to send buffer
+		//			EnqueueMsg(msg_queue, send_message);
+		//		}
+		//		//----> Exit input
+		//		else if (STRINGS_ARE_EQUAL(input, "exit")) {
+		//			//-> send exit to send buffer
+		//			EnqueueMsg(msg_queue, send_message);
 
-					//---> Writing to logfile
-					PrintToLogFile(info->LogFile_ptr, "Custom message", "Player entered exit input...");
+		//			//---> Writing to logfile
+		//			PrintToLogFile(info->LogFile_ptr, "Custom message", "Player entered exit input...");
 
-					thread_terminator("clean"); // Clean exit the programm
-					return 0;
-				}
-				//----> Message input
-				else if (type == 2) {
-					send_message = ConstructMessage(input, "message"); //Constructing the message to send to the server
-					//-> send play to send buffer
-					EnqueueMsg(msg_queue, send_message);
-				}
-				else {
-					printf("Error: Illegal command\n");
-					send_message = "Error: Illegal command";
-				}
-				//---> Writing to logfile
-				if (STRINGS_ARE_EQUAL("Error: Illegal command", send_message))
-					PrintToLogFile(info->LogFile_ptr, "Custom message: User input error", input);
-				else
-					PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message); //Writing to logfile
+		//			thread_terminator("clean"); // Clean exit the programm
+		//			return 0;
+		//		}
+		//		//----> Message input
+		//		else if (type == 2) {
+		//			send_message = ConstructMessage(input, "message"); //Constructing the message to send to the server
+		//			//-> send play to send buffer
+		//			EnqueueMsg(msg_queue, send_message);
+		//		}
+		//		else {
+		//			printf("Error: Illegal command\n");
+		//			send_message = "Error: Illegal command";
+		//		}
+		//		//---> Writing to logfile
+		//		if (STRINGS_ARE_EQUAL("Error: Illegal command", send_message))
+		//			PrintToLogFile(info->LogFile_ptr, "Custom message: User input error", input);
+		//		else
+		//			PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message); //Writing to logfile
 
-			}
-		}
+		//	}
+		//}
 		//free(send_message);
 	}
 	return 0;
@@ -379,14 +400,16 @@ int MainClient(char* server_ip, int port_number, char* username)
 
 	if (connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR) 
 	{
-		printf("Failed connecting to server on %s:%s. Exiting\n", server_ip, port_number);
+		printf("Failed connecting to server on %s:%d. Exiting\n", server_ip, port_number);
 		WSACleanup();
 		exit(0x555);
 	}
 	else
-		printf("Connected to server on %s:%s\n\n", SERVER_ADDRESS_STR, port_number);
+		//printf("Connected to server on %s:%s\n", SERVER_ADDRESS_STR, port_number);
 
 	thread_params.username = username;
+	thread_params.server_ip = server_ip;
+	thread_params.server_port = port_number;
 
 	//--> Creating mutex for logfile writing
 	logfile_mutex = CreateMutex(
