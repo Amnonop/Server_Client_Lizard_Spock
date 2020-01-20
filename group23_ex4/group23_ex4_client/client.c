@@ -300,6 +300,26 @@ static DWORD SendDataThread(void)
 	}
 }
 
+
+int computePlayerMove(char* player_move)
+{
+	if (STRINGS_ARE_EQUAL(player_move, "ROCK"))
+		return 0;
+	else if (STRINGS_ARE_EQUAL(player_move, "PAPER"))
+		return 1;
+	else if (STRINGS_ARE_EQUAL(player_move, "SCISSORS"))
+		return 2;
+	else if (STRINGS_ARE_EQUAL(player_move, "LIZARD"))
+		return 3;
+	else if (STRINGS_ARE_EQUAL(player_move, "SPOCK"))
+		return 4;
+	else
+	{
+		printf("Wrong input, exiting.\n");
+		return (-1);
+	}
+}
+
 //User application Thread (managing all user inputs to the client)
 static DWORD ApplicationThread(LPVOID lpParam)
 {
@@ -337,7 +357,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 					case PLAY_MOVE:
 						playMoveMenuMessage();
 						scanf_s("%s", user_move);
-
+						int player_move = computePlayerMove(user_move);
 						break;
 					default:
 						break;
