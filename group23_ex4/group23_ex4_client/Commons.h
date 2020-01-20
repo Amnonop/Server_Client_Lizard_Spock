@@ -27,4 +27,12 @@ typedef enum
 	WAITING_TO_START_GAME
 } CLIENT_STATE;
 
+typedef enum
+{
+	PLAY_VS_PLAYER = 1,
+	PLAY_VS_COMPUTER = 2,
+	LEADERBOARD = 3,
+	QUIT = 4
+} USER_CHOICE;
+
 #endif

@@ -124,6 +124,7 @@
     <ClCompile Include="socketSendReceive.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\ClientSrvCommons.h" />
     <ClInclude Include="..\Shared\StringTools.h" />
     <ClInclude Include="client.h" />
     <ClInclude Include="Commons.h" />

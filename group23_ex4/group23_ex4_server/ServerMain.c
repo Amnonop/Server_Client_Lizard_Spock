@@ -7,6 +7,7 @@
 #include "Commons.h"
 #include "../Shared/MessageTools.h"
 #include "socketS.h"
+#include "../Shared/ClientSrvCommons.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 #define NUM_OF_WORKER_THREADS 2
@@ -24,6 +25,7 @@ client_info_t connected_clients[CLIENTS_MAX_NUM];
 client_params_t client_params[CLIENTS_MAX_NUM];
 TransferResult_t SendRes;
 static DWORD ClientThread(LPVOID thread_params);
+MOVE_TYPE GetComputerMove();
 
 int SendServerApprovedMessage(SOCKET player)
 {
@@ -70,6 +72,28 @@ int SendServerMenuMessage(SOCKET player)
 }
 
 
+SendServerMoveMessage(SOCKET player)
+{
+	char* message_name = "SERVER_MAIN_MENU";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	printf("Sending message: %s\n", message_string);
+
+	SendRes = SendString(message_name, player);
+	if (SendRes == TRNS_FAILED)
+	{
+		printf("Service socket error while writing, closing thread.\n");
+		closesocket(player);
+	}
+}
+
 int RunServer(int port_number)
 {
 	WSADATA wsa_data;
@@ -79,7 +103,7 @@ int RunServer(int port_number)
 	SOCKADDR_IN service;
 	int bind_result;
 	int listen_result;
-
+	srand(42);
 	int thread_index;
 	int client_thread_count;
 	int connected_clients_count = 0;
@@ -242,9 +266,43 @@ static DWORD ClientThread(LPVOID thread_params)
 		SendServerMenuMessage(connected_clients[client_params->client_number].socket);
 		//we_can_start = 1;
 		//SetEvent(GameManagerHandle);
-
 	}
+
+	free(message);
 		
+	while (TRUE)
+	{
+		// waiting for new message
+		accepted_string = NULL;
+		RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
+		if (RecvRes == TRNS_FAILED) {
+			printf("Player disconnected. Ending communication.\n");
+			//closesocket(players_sockets[player_number]);
+			//SetEvent(DiscconectThem);
+			return -1;
+		}
+		else if (RecvRes == TRNS_DISCONNECTED) {
+			printf("Player disconnected. Ending communication.\n");
+			//closesocket(players_sockets[player_number]);
+			//SetEvent(DiscconectThem);
+			return -1;
+		}
+
+		// breake message into message type and it's other parts
+		printf("Received message: %s\n", accepted_string);
+		GetMessageStruct(message, accepted_string);
+		int move = GetComputerMove();
+		if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
+		{
+			int move = GetComputerMove();
+			SendServerMoveMessage(connected_clients[client_params->client_number].socket);
+		}
+	}
 	
 	free(message);
+}
+
+MOVE_TYPE GetComputerMove()
+{
+	return rand() % 5;
 }

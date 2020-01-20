@@ -149,6 +149,10 @@ static DWORD RecvDataThread(LPVOID lpParam)
 			{
 				client_state = MAIN_MENU;
 			}
+			else if (STRINGS_ARE_EQUAL("SERVER_PLAYER_MOVE_REQUEST", message->message_type))
+			{
+				client_state = PLAY_MOVE;
+			}
 		}
 	//	else { // We recived a new message
 	//		MessageEval(message, AcceptedStr); // Deconstructing the message (AcceptedStr)
@@ -305,6 +309,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 	DWORD wait_code;
 	BOOL release_res;
 	int user_choice = -1;
+	char *user_move = NULL;
 
 	thread_params = (client_thread_params_t*)lpParam;
 
@@ -323,6 +328,20 @@ static DWORD ApplicationThread(LPVOID lpParam)
 			case MAIN_MENU:
 				PrintMainMenu();
 				scanf_s("%d", &user_choice);
+				switch (user_choice)
+				{
+					case PLAY_VS_COMPUTER:
+						client_state = WAITING_TO_START_GAME;
+						SendClientCPUMessage();
+						break;
+					case PLAY_MOVE:
+						playMoveMenuMessage();
+						scanf_s("%s", user_move);
+
+						break;
+					default:
+						break;
+				}
 				break;
 			default:
 				break;
@@ -513,20 +532,25 @@ int SendClientRequestMessage(char* username)
 	EnqueueMsg(msg_queue, message_string);
 }
 
-int SendClientCPUMessage(char* username)
+int SendClientCPUMessage()
 {
 	char* message_name = "CLIENT_CPU";
 	int message_length;
 	char* message_string;
 
 	// Build message string
-	message_length = strlen(message_name) + 1 + strlen(username) + 2;
+	message_length = strlen(message_name) + 2;
 	message_string = (char*)malloc(sizeof(char)*message_length);
 	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s:%s\n", message_name, username);
+	sprintf_s(message_string, message_length, "%s\n", message_name);
 
 	// Send the message
 	EnqueueMsg(msg_queue, message_string);
+}
+
+void playMoveMenuMessage()
+{
+	printf("Choose a move from the list: Rock, Papar, Scissors, Lizard or Spock:\n");
 }
 
 //The function gets the raw string from user and the type of message to send to server: username/play/message, and returns the formated message to send to the server

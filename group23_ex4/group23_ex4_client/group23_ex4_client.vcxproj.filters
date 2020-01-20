@@ -44,5 +44,8 @@
     <ClInclude Include="..\Shared\StringTools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\Shared\ClientSrvCommons.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
