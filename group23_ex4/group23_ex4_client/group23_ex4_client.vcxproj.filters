@@ -24,6 +24,9 @@
     <ClCompile Include="socketSendReceive.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\StringTools.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Commons.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\StringTools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

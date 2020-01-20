@@ -24,11 +24,10 @@
 #define YELLOW 238
 
 // Struct which contains the data to send to the threads: <file pointer to logfile> <input mode> <file pointer to input file>
-typedef struct Data {
-	struct FILE *LogFile_ptr;
-	char *input_mode;
-	struct FILE *InputFile_ptr;
-}Data;
+typedef struct client_thread_params 
+{
+	char* username;
+} client_thread_params_t;
 
 // Struct which contains a message (in MsgQueue) sent from user application thread to send thread: <char pointer data - string> <pointer to next>
 typedef struct MsgNode {
@@ -53,6 +52,6 @@ void EnqueueMsg(MsgQueue *msg_queue, char *msg);
 char *DequeueMsg(MsgQueue *msg_queue);
 void thread_terminator(char *type);
 void PrintToLogFile(FILE *ptr, char *format, char *message);
-int MainClient(char *logfile, char *server_port, char *input_mode, char *input_file);
+int MainClient(char* server_ip, int port_number, char* username);
 
 #endif

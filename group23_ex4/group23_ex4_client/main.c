@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "Commons.h"
-#include "StringTools.h"
+#include "..\Shared\StringTools.h"
+#include "client.h"
 
 #define NUM_OF_ARGUMENTS 3
 #define SERVER_IP_ARG_INDEX 1
@@ -28,7 +29,7 @@ int main(int argc, char* argv[])
 	sscanf_s(argv[SERVER_PORT_ARG_INDEX], "%d", &port_number);
 	str_copy_result = CopyString(argv[USERNAME_ARG_INDEX], username);
 
-	//RunServer(port_number);
+	MainClient(server_ip, port_number, username);
 
 	return exit_code;
 }

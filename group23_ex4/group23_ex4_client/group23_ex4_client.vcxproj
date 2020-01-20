@@ -118,11 +118,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\StringTools.c" />
     <ClCompile Include="client.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="socketSendReceive.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Shared\StringTools.h" />
     <ClInclude Include="client.h" />
     <ClInclude Include="Commons.h" />
     <ClInclude Include="others.h" />

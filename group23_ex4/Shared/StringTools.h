@@ -1,5 +1,5 @@
-#ifndef STRING_TOOLS
-#define STRING_TOOLS
+#ifndef STRING_TOOLS_H
+#define STRING_TOOLS_H
 
 #define STR_ALLOCATION_ERROR -99
 
