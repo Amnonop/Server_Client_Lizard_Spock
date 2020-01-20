@@ -8,6 +8,7 @@
 #include "client.h"
 #include "others.h"
 #include "SocketS.h"
+#include "Commons.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 
@@ -20,13 +21,76 @@ HANDLE hThread[3]; // main threads
 int game_started = 0, exit_signal = 0, user_accepted = 0, play_accepted = 0;
 MsgQueue *msg_queue = NULL; // pointer to send message buffer
 
-int first_connection = TRUE;
+CLIENT_STATE client_state = FIRST_CONNECTION;
 
+parameters_t* CreateNode(char* param_value)
+{
+	int value_length;
+
+	parameters_t* new_node = (parameters_t*)malloc(sizeof(parameters_t));
+	if (new_node != NULL)
+	{
+		value_length = strlen(param_value) + 1;
+		new_node->param_value = (char*)malloc(sizeof(char)*value_length);
+		strcpy_s(new_node->param_value, value_length, param_value);
+	}
+	return new_node;
+}
+
+//Function that gets the raw message and break it into the Message struct without :/;
+int GetMessageStruct(message_t *message, char *raw_string) 
+{
+	int exit_code = CLIENT_SUCCESS;
+	const char* message_type_delim = ":";
+	const char* param_delim = ";";
+	char* token;
+	char* next_token;
+	int message_type_length;
+	parameters_t* param_node = NULL;
+
+	token = strtok_s(raw_string, message_type_delim, &next_token);
+	message_type_length = strlen(token) + 1;
+	message->message_type = (char*)malloc(sizeof(char)*message_type_length);
+	strcpy_s(message->message_type, message_type_length, token);
+
+	while (token)
+	{
+		token = strtok_s(NULL, param_delim, &next_token);
+
+		// Add a new parameter node
+		
+	}
+
+	char AcceptedStrHelp[MAX_MSG];
+	strcpy(AcceptedStrHelp, AcceptedStr);
+	Parameters *iter = malloc(sizeof(Parameters));
+	m->message_type = malloc(sizeof(char) * 100);
+	m->parameters = malloc(sizeof(Parameters));
+	m->parameters->parameter = malloc(sizeof(char) * 100);
+	m->parameters->next = NULL;
+	char *message = strtok(AcceptedStrHelp, ":");
+	strcpy(m->message_type, message);
+	iter = m->parameters;
+	
+	while (message != NULL) {
+		message = strtok(NULL, ";");
+		if (message == NULL)
+		{
+			iter->parameter = NULL;
+			continue;
+		}
+		strcpy(iter->parameter, message);
+		iter->next = malloc(sizeof(Parameters));
+		iter = iter->next;
+		iter->parameter = malloc(sizeof(char) * 100);
+	}
+}
 
 //Reading data coming from the server Thread
 static DWORD RecvDataThread(LPVOID lpParam)
 {
-	TransferResult_t RecvRes;
+	TransferResult_t receive_result;
+	char* accepted_string = NULL;
 	struct Message *message = NULL;
 	int board[BOARD_HEIGHT][BOARD_WIDTH] = { 0 }, type = 0;
 	char input[MAX_LINE], *send_message = NULL;
@@ -38,32 +102,28 @@ static DWORD RecvDataThread(LPVOID lpParam)
 
 	message = (struct Message*)malloc(sizeof(struct Message));
 
-	while (1);
+	while (1)
+	{
+		accepted_string = NULL;
+		receive_result = ReceiveString(&accepted_string, m_socket);
 
-	//while (1)
-	//{
-	//	char *AcceptedStr = NULL;
-	//	RecvRes = ReceiveString(&AcceptedStr, m_socket);
+		if (receive_result == TRNS_FAILED) 
+		{ 
+			// if the server disconnected
+			printf("server disconnected. exiting.\n");
 
-	//	if (RecvRes == TRNS_FAILED) { // If the server disconnected
-	//		printf("Server disconnected. Exiting.\n");
-	//		////---> Writing to logfile
-	//		//wait_code = WaitForSingleObject(logfile_mutex, INFINITE);
-	//		//if (wait_code != WAIT_OBJECT_0) printf("Fail while waiting for logfile mutex");
-
-	//		////critical region
-	//		//fprintf(info->LogFile_ptr, "Server disconnected. Exiting.\n"); //Writing to logfile
-
-	//		////end of critical region
-	//		//release_res = ReleaseMutex(logfile_mutex);
-	//		//if (release_res == FALSE) printf("Fail releasing logfile mutex");
-	//		//thread_terminator("clean"); // exit the programm with error
-	//		return 0;
-	//	}
-	//	else if (RecvRes == TRNS_DISCONNECTED) {
-	//		printf("Server disconnected. Exiting.\n");// If the server disconnected
-	//		return 0;
-	//	}
+			thread_terminator("clean"); // exit the programm with error
+			return 0;
+		}
+		else if (receive_result == TRNS_DISCONNECTED) 
+		{
+			printf("Server disconnected. Exiting.\n");// If the server disconnected
+			return 0;
+		}
+		else
+		{
+			// Check the received message
+		}
 	//	else { // We recived a new message
 	//		MessageEval(message, AcceptedStr); // Deconstructing the message (AcceptedStr)
 	//		//---> Writing to logfile
@@ -180,7 +240,7 @@ static DWORD RecvDataThread(LPVOID lpParam)
 	//		}
 	//	}
 	//	//free(send_message);
-	//}
+	}
 	//free(message);
 	return 0;
 }
@@ -222,21 +282,27 @@ static DWORD ApplicationThread(LPVOID lpParam)
 
 	while (1)
 	{
-		if (first_connection)
+		switch (client_state)
 		{
-			// Send CLIENT_REQUEST message with username to server
-			SendClientRequestMessage(thread_params->username);
+			case FIRST_CONNECTION:
+				// Send CLIENT_REQUEST message with username to server
+				SendClientRequestMessage(thread_params->username);
+				client_state = WAITING_SERVER_APPROVAL;
+				break;
+			default:
+				break;
 		}
+		
 		if ((game_started == 0) && (user_accepted == 0) && (run == 0)) // Username input for user
 		{
-			run++;
-			strcpy(my_username, input); //Saving my username
-			send_message = ConstructMessage(input, "username"); //Constructing the message to send to the server
-			//----->sending to buffer
-			EnqueueMsg(msg_queue, send_message);
+			//run++;
+			//strcpy(my_username, input); //Saving my username
+			//send_message = ConstructMessage(input, "username"); //Constructing the message to send to the server
+			////----->sending to buffer
+			//EnqueueMsg(msg_queue, send_message);
 
-			//---> Writing to logfile
-			PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message);
+			////---> Writing to logfile
+			//PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message);
 
 		}
 		if ((game_started == 1) && (user_accepted == 1)) { //Game started!

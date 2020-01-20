@@ -22,7 +22,7 @@ typedef struct Parameters {
 typedef struct Message {
 	char *message_type;
 	Parameters *parameters;
-}Message;
+}message_t;
 
 void MessageEval(Message *m, char *AcceptedStr);
 

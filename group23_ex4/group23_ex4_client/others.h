@@ -14,16 +14,16 @@
 
 #define MAX_MSG 256
 
-typedef struct Parameters {
-	char *parameter;
-	struct Parameters *next;
-}Parameters;
+typedef struct parameters {
+	char *param_value;
+	struct parameters *next;
+} parameters_t;
 
-typedef struct Message {
+typedef struct message {
 	char *message_type;
-	Parameters *parameters;
-}Message;
+	parameters_t *parameters;
+} message_t;
 
-void MessageEval(Message *m, char *AcceptedStr);
+void MessageEval(message_t *m, char *AcceptedStr);
 
 #endif
