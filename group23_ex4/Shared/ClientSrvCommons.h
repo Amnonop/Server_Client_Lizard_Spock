@@ -10,4 +10,12 @@ typedef enum
 	SPOCK = 4
 } MOVE_TYPE;
 
+typedef enum
+{
+	CLIENT_CPU,
+	CLIENT_VERSUS,
+	LEADERBOARD,
+	QUIT
+} CLIENT_MENU_OPTIONS;
+
 #endif
