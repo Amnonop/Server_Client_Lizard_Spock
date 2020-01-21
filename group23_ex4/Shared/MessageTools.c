@@ -16,14 +16,50 @@ int GetMessageStruct(message_t *message, char *raw_string)
 	char* token;
 	char* next_token;
 	int message_type_length;
+	char* end;
+	int end_index;
+	int i = 0;
+	int message_type_index = -1;
+	int lase_param_index = -1;
+
+	char* param_value;
+	int param_start_index;
+	int param_end_index;
+	int param_length;
+
+	char* param_delim_loc;
+	int param_delim_index;
+
+	end = strchr(raw_string, '\n');
+	end_index = end - raw_string;
+
+	// Initialize param linked list
+	message->parameters = NULL;
+
+	while (raw_string[i] != '\n')
+	{
+		if (raw_string[i] == ':')
+		{
+			// Message type
+			message_type_index = i;
+		}
+	}
+
+	// Check if the message contains parameters
+	if (message_type_index != -1)
+	{
+		// Find the first occurence of ';'
+		param_delim_loc = strchr(raw_string, ';');
+		if (param_delim_loc != NULL)
+		{
+
+		}
+	}
 
 	token = strtok_s(raw_string, message_type_delim, &next_token);
 	message_type_length = strlen(token) + 1;
 	message->message_type = (char*)malloc(sizeof(char)*message_type_length);
 	strcpy_s(message->message_type, message_type_length, token);
-
-	// Initialize param linked list
-	message->parameters = NULL;
 
 	token = strtok_s(NULL, param_delim, &next_token);
 	while (token)
