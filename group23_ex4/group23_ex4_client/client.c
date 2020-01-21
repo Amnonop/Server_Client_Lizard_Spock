@@ -568,7 +568,7 @@ int SendClientCPUMessage()
 	EnqueueMsg(msg_queue, message_string);
 }
 
-void playMoveMenuMessage()
+int playMoveMenuMessage()
 {
 	printf("Choose a move from the list: Rock, Papar, Scissors, Lizard or Spock:\n");
 }

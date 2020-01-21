@@ -26,6 +26,8 @@ client_params_t client_params[CLIENTS_MAX_NUM];
 TransferResult_t SendRes;
 static DWORD ClientThread(LPVOID thread_params);
 MOVE_TYPE GetComputerMove();
+int AcceptPlayer(SOCKET client_socket);
+int ReceiveMessage(SOCKET client_socket, message_t* message);
 
 int SendServerApprovedMessage(SOCKET player)
 {
@@ -226,49 +228,21 @@ static DWORD ClientThread(LPVOID thread_params)
 	TransferResult_t SendRes;
 	TransferResult_t RecvRes;
 	int found_place;
+	int exit_code;
 	//char str_to_send[MAX_MESSAGE_SIZE];
 
 	client_params_t* client_params;
-	message_t* message;
+	message_t* message = NULL;
 	char* accepted_string = NULL;
 
 	client_params = (client_params_t*)thread_params;
 	
-	message= (message_t*)malloc(sizeof(message_t));
-	if (message == NULL) 
+	exit_code = AcceptPlayer(connected_clients[client_params->client_number].socket);
+	if (exit_code != SERVER_SUCCESS)
 	{
-		printf("memory allocation failed");
-		//exit(ERROR_CODE);
+		// TODO: Terminate the thread for this client
+		return exit_code;
 	}
-
-	// waiting for new message
-	RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
-	if (RecvRes == TRNS_FAILED) {
-		printf("Player disconnected. Ending communication.\n");
-		//closesocket(players_sockets[player_number]);
-		//SetEvent(DiscconectThem);
-		return -1;
-	}
-	else if (RecvRes == TRNS_DISCONNECTED) {
-		printf("Player disconnected. Ending communication.\n");
-		//closesocket(players_sockets[player_number]);
-		//SetEvent(DiscconectThem);
-		return -1;
-	}
-
-	// breake message into message type and it's other parts
-	printf("Received message: %s\n", accepted_string);
-	GetMessageStruct(message, accepted_string);
-
-	if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_REQUEST")) 
-	{// if it is a new request to join the game
-		SendServerApprovedMessage(connected_clients[client_params->client_number].socket);
-		SendServerMenuMessage(connected_clients[client_params->client_number].socket);
-		//we_can_start = 1;
-		//SetEvent(GameManagerHandle);
-	}
-
-	free(message);
 		
 	while (TRUE)
 	{
@@ -300,6 +274,103 @@ static DWORD ClientThread(LPVOID thread_params)
 	}
 	
 	free(message);
+}
+
+int AcceptPlayer(SOCKET client_socket)
+{
+	message_t* message = NULL;
+	int receive_result;
+
+	receive_result = ReceiveMessage(client_socket, message);
+	if (receive_result != SERVER_SUCCESS)
+	{
+		if (message != NULL)
+			free(message);
+		return receive_result;
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_REQUEST"))
+	{
+		SendServerApprovedMessage(connected_clients[client_params->client_number].socket);
+		SendServerMenuMessage(connected_clients[client_params->client_number].socket);
+	}
+
+	free(message);
+	return SERVER_SUCCESS;
+}
+
+int HandlePlayer(SOCKET client_socket)
+{
+	message_t* message = NULL;
+	int receive_result;
+
+	receive_result = ReceiveMessage(client_socket, message);
+	if (receive_result != SERVER_SUCCESS)
+	{
+		if (message != NULL)
+			free(message);
+		return receive_result;
+	}
+
+	if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
+	{
+		int move = GetComputerMove();
+		SendServerMoveMessage(connected_clients[client_params->client_number].socket);
+	}
+
+	free(message);
+	return SERVER_SUCCESS;
+}
+
+int Play(SOCKET client_socket)
+{
+	BOOL end_game = FALSE;
+	MOVE_TYPE computer_move;
+	MOVE_TYPE player_move;
+
+	while (!end_game)
+	{
+		computer_move = GetComputerMove();
+		SendServerMoveMessage(client_socket);
+
+		// Wait for the player's move CLIENT_PLAYER_MOVE
+
+		// Send SERVER_GAME_RESULTS
+
+		// Wait for client's choice 
+	}
+}
+
+int ReceiveMessage(SOCKET client_socket, message_t* message)
+{
+	TransferResult_t receive_result;
+	char* accepted_string = NULL;
+
+	message = (message_t*)malloc(sizeof(message_t));
+	if (message == NULL)
+	{
+		printf("Failed to allocate memory.\n");
+		return SERVER_MEM_ALLOC_FAILED;
+	}
+
+	// Waiting for CLIENT_REQUEST message
+	receive_result = ReceiveString(&accepted_string, client_socket);
+	if (receive_result == TRNS_FAILED)
+	{
+		printf("Player disconnected. Ending communication.\n");
+		return SERVER_TRANS_FAILED;
+	}
+	else if (receive_result == TRNS_DISCONNECTED)
+	{
+		printf("Player disconnected. Ending communication.\n");
+		return SERVER_TRANS_FAILED;
+	}
+
+	printf("Received message: %s\n", accepted_string);
+	GetMessageStruct(message, accepted_string);
+
+	free(accepted_string);
+	return SERVER_SUCCESS;
 }
 
 MOVE_TYPE GetComputerMove()
