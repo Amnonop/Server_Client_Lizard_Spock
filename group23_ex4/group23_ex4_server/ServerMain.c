@@ -25,8 +25,11 @@ client_params_t client_params[CLIENTS_MAX_NUM];
 TransferResult_t SendRes;
 static DWORD ClientThread(LPVOID thread_params);
 MOVE_TYPE GetComputerMove();
-int AcceptPlayer(SOCKET client_socket);
+int AcceptPlayer(client_info_t* client);
 int CheckWinner(MOVE_TYPE player_a_move, MOVE_TYPE player_b_move);
+int HandlePlayer(client_info_t* client);
+int SaveUsername(const char* username, client_info_t* client);
+int Play(client_info_t* client);
 
 int SendServerApprovedMessage(SOCKET player)
 {
@@ -205,7 +208,6 @@ static DWORD ClientThread(LPVOID thread_params)
 	TransferResult_t RecvRes;
 	int found_place;
 	int exit_code;
-	//char str_to_send[MAX_MESSAGE_SIZE];
 
 	client_params_t* client_params;
 	message_t* message = NULL;
@@ -222,42 +224,44 @@ static DWORD ClientThread(LPVOID thread_params)
 		
 	while (TRUE)
 	{
-		// waiting for new message
-		accepted_string = NULL;
-		RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
-		if (RecvRes == TRNS_FAILED) {
-			printf("Player disconnected. Ending communication.\n");
-			//closesocket(players_sockets[player_number]);
-			//SetEvent(DiscconectThem);
-			return -1;
-		}
-		else if (RecvRes == TRNS_DISCONNECTED) {
-			printf("Player disconnected. Ending communication.\n");
-			//closesocket(players_sockets[player_number]);
-			//SetEvent(DiscconectThem);
-			return -1;
-		}
+		exit_code = HandlePlayer(&(connected_clients[client_params->client_number]));
+		//// waiting for new message
+		//accepted_string = NULL;
+		//RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
+		//if (RecvRes == TRNS_FAILED) {
+		//	printf("Player disconnected. Ending communication.\n");
+		//	//closesocket(players_sockets[player_number]);
+		//	//SetEvent(DiscconectThem);
+		//	return -1;
+		//}
+		//else if (RecvRes == TRNS_DISCONNECTED) {
+		//	printf("Player disconnected. Ending communication.\n");
+		//	//closesocket(players_sockets[player_number]);
+		//	//SetEvent(DiscconectThem);
+		//	return -1;
+		//}
 
-		// breake message into message type and it's other parts
-		printf("Received message: %s\n", accepted_string);
-		GetMessageStruct(message, accepted_string);
-		int move = GetComputerMove();
-		if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
-		{
-			int move = GetComputerMove();
-			SendServerMoveMessage(connected_clients[client_params->client_number].socket);
-		}
+		//// breake message into message type and it's other parts
+		//printf("Received message: %s\n", accepted_string);
+		//GetMessageStruct(message, accepted_string);
+		//int move = GetComputerMove();
+		//if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
+		//{
+		//	int move = GetComputerMove();
+		//	SendServerMoveMessage(connected_clients[client_params->client_number].socket);
+		//}
 	}
 	
 	free(message);
 }
 
-int AcceptPlayer(SOCKET client_socket)
+int AcceptPlayer(client_info_t* client)
 {
+	int exit_code = SERVER_SUCCESS;
 	message_t* message = NULL;
 	int receive_result;
 
-	receive_result = ReceiveMessage(client_socket, message);
+	receive_result = ReceiveMessage(client->socket, message);
 	if (receive_result != SERVER_SUCCESS)
 	{
 		if (message != NULL)
@@ -267,21 +271,40 @@ int AcceptPlayer(SOCKET client_socket)
 
 	if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_REQUEST"))
 	{
-		SendServerApprovedMessage(connected_clients[client_params->client_number].socket);
-		SendServerMenuMessage(connected_clients[client_params->client_number].socket);
+		// TODO: Save the user's name
+		SaveUsername(message->parameters, client);
+
+		exit_code = SendServerApprovedMessage(client->socket);
+		if (exit_code == SERVER_SUCCESS)
+		{
+			exit_code = SendServerMenuMessage(client->socket);
+		}
+	}
+	else
+	{
+		printf("Expected to get CLIENT_REQUEST but got %s instead.\n", message->message_type);
+		exit_code = SERVER_UNEXPECTED_MESSAGE;
 	}
 
 	free(message);
-	return SERVER_SUCCESS;
+	return exit_code;
 }
 
-int HandlePlayer(SOCKET client_socket)
+int SaveUsername(const char* username, client_info_t* client)
+{
+	int username_length;
+
+	username_length = strlen(username) + 1;
+	strcpy_s(client->userinfo, username_length, username);
+}
+
+int HandlePlayer(client_info_t* client)
 {
 	message_t* message = NULL;
 	int receive_result;
 	int exit_code = SERVER_SUCCESS;
 
-	receive_result = ReceiveMessage(client_socket, message);
+	receive_result = ReceiveMessage(client->socket, message);
 	if (receive_result != SERVER_SUCCESS)
 	{
 		if (message != NULL)
@@ -291,14 +314,14 @@ int HandlePlayer(SOCKET client_socket)
 
 	if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
 	{
-		exit_code = Play(client_socket);
+		exit_code = Play(client->socket);
 	}
 
 	free(message);
 	return SERVER_SUCCESS;
 }
 
-int Play(SOCKET client_socket)
+int Play(client_info_t* client)
 {
 	int exit_code = SERVER_SUCCESS;
 	BOOL end_game = FALSE;
@@ -311,12 +334,12 @@ int Play(SOCKET client_socket)
 	{
 		computer_move = GetComputerMove();
 
-		exit_code = SendPlayerMoveRequestMessage(client_socket);
+		exit_code = SendPlayerMoveRequestMessage(client->socket);
 		if (exit_code != SERVER_SUCCESS)
 			return exit_code;
 
 		// Wait for the player's move CLIENT_PLAYER_MOVE
-		exit_code = GetPlayerMove(client_socket, &player_move);
+		exit_code = GetPlayerMove(client->socket, &player_move);
 		if (exit_code != SERVER_SUCCESS)
 		{
 			return exit_code;
@@ -325,15 +348,15 @@ int Play(SOCKET client_socket)
 		// Send SERVER_GAME_RESULTS
 		winner = CheckWinner(player_move, computer_move);
 		if (winner == 1)
-			exit_code = SendGameResultsMessage("Server", computer_move, player_move, "", client_socket); // TODO: Send player username
+			exit_code = SendGameResultsMessage("Server", computer_move, player_move, client->userinfo, client->socket); // TODO: Send player username
 		else
-			exit_code = SendGameResultsMessage("Server", computer_move, player_move, "Server", client_socket);
+			exit_code = SendGameResultsMessage("Server", computer_move, player_move, "Server", client->socket);
 		
 		if (exit_code != SERVER_SUCCESS)
 			return exit_code;
 
 		// Wait for client's choice 
-		exit_code = SendGameOverMenu(client_socket);
+		exit_code = SendGameOverMenu(client->socket);
 		if (exit_code != SERVER_SUCCESS)
 			return exit_code;
 
