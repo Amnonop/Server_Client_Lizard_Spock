@@ -5,6 +5,7 @@
 #include "../Shared/ClientSrvCommons.h"
 #include "../Shared/MessageTools.h"
 
+int SendPlayerMoveRequestMessage(SOCKET socket);
 int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move);
 int ParsePlayerMoveMessage(message_t* message, MOVE_TYPE* player_move);
 int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move, MOVE_TYPE player_move, const char* winner_name, SOCKET socket);

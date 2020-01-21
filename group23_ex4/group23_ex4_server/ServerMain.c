@@ -14,8 +14,6 @@
 #define NUM_OF_WORKER_THREADS 2
 #define CLIENTS_MAX_NUM 2
 
-
-
 typedef struct client_params
 {
 	int client_number;
@@ -53,29 +51,6 @@ int SendServerApprovedMessage(SOCKET player)
 }
 
 int SendServerMenuMessage(SOCKET player)
-{
-	char* message_name = "SERVER_MAIN_MENU";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	printf("Sending message: %s\n", message_string);
-
-	SendRes = SendString(message_name, player);
-	if (SendRes == TRNS_FAILED)
-	{
-		printf("Service socket error while writing, closing thread.\n");
-		closesocket(player);
-	}
-}
-
-
-SendServerMoveMessage(SOCKET player)
 {
 	char* message_name = "SERVER_MAIN_MENU";
 	int message_length;
@@ -304,6 +279,7 @@ int HandlePlayer(SOCKET client_socket)
 {
 	message_t* message = NULL;
 	int receive_result;
+	int exit_code = SERVER_SUCCESS;
 
 	receive_result = ReceiveMessage(client_socket, message);
 	if (receive_result != SERVER_SUCCESS)
@@ -315,8 +291,7 @@ int HandlePlayer(SOCKET client_socket)
 
 	if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
 	{
-		int move = GetComputerMove();
-		SendServerMoveMessage(connected_clients[client_params->client_number].socket);
+		exit_code = Play(client_socket);
 	}
 
 	free(message);
@@ -335,7 +310,10 @@ int Play(SOCKET client_socket)
 	while (!end_game)
 	{
 		computer_move = GetComputerMove();
-		exit_code = SendServerMoveMessage(client_socket);
+
+		exit_code = SendPlayerMoveRequestMessage(client_socket);
+		if (exit_code != SERVER_SUCCESS)
+			return exit_code;
 
 		// Wait for the player's move CLIENT_PLAYER_MOVE
 		exit_code = GetPlayerMove(client_socket, &player_move);

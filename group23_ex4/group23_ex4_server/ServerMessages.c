@@ -5,6 +5,14 @@
 #include "../Shared/MessageTools.h"
 #include "socketS.h"
 
+int SendMessageWithoutParams(const char* message_type, SOCKET socket);
+
+int SendPlayerMoveRequestMessage(SOCKET socket)
+{
+	const char* message_name = "SERVER_PLAYER_MOVE_REQUEST";
+	return SendMessageWithoutParams(message_name, socket);
+}
+
 int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move)
 {
 	int exit_code = SERVER_SUCCESS;
@@ -107,5 +115,33 @@ int ReceiveMessage(SOCKET client_socket, message_t* message)
 	GetMessageStruct(message, accepted_string);
 
 	free(accepted_string);
+	return SERVER_SUCCESS;
+}
+
+int SendMessageWithoutParams(const char* message_name, SOCKET socket)
+{
+	int message_length;
+	char* message_string;
+	TransferResult_t send_result;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	if (message_string == NULL)
+		return SERVER_MEM_ALLOC_FAILED;
+
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	printf("Sending message: %s\n", message_string);
+
+	send_result = SendString(message_name, socket);
+	if (send_result == TRNS_FAILED)
+	{
+		printf("Service socket error while writing, closing thread.\n");
+		closesocket(socket);
+		return SERVER_TRANS_FAILED;
+	}
+
+	free(message_string);
 	return SERVER_SUCCESS;
 }
