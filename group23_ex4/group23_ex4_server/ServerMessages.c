@@ -86,13 +86,13 @@ int SendGameOverMenu(SOCKET socket)
 	return SERVER_SUCCESS;
 }
 
-int ReceiveMessage(SOCKET client_socket, message_t* message)
+int ReceiveMessage(SOCKET client_socket, message_t** message)
 {
 	TransferResult_t receive_result;
 	char* accepted_string = NULL;
 
-	message = (message_t*)malloc(sizeof(message_t));
-	if (message == NULL)
+	*message = (message_t*)malloc(sizeof(message_t));
+	if (*message == NULL)
 	{
 		printf("Failed to allocate memory.\n");
 		return SERVER_MEM_ALLOC_FAILED;
@@ -112,7 +112,7 @@ int ReceiveMessage(SOCKET client_socket, message_t* message)
 	}
 
 	printf("Received message: %s\n", accepted_string);
-	GetMessageStruct(message, accepted_string);
+	GetMessageStruct(*message, accepted_string);
 
 	free(accepted_string);
 	return SERVER_SUCCESS;

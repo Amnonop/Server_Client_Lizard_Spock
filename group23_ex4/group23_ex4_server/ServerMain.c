@@ -50,7 +50,10 @@ int SendServerApprovedMessage(SOCKET player)
 	{
 		printf("Service socket error while writing, closing thread.\n");
 		closesocket(player);
+		return SERVER_TRANS_FAILED;
 	}
+
+	return SERVER_SUCCESS;
 }
 
 int SendServerMenuMessage(SOCKET player)
@@ -72,7 +75,10 @@ int SendServerMenuMessage(SOCKET player)
 	{
 		printf("Service socket error while writing, closing thread.\n");
 		closesocket(player);
+		return SERVER_TRANS_FAILED;
 	}
+
+	return SERVER_SUCCESS;
 }
 
 int RunServer(int port_number)
@@ -215,7 +221,7 @@ static DWORD ClientThread(LPVOID thread_params)
 
 	client_params = (client_params_t*)thread_params;
 	
-	exit_code = AcceptPlayer(connected_clients[client_params->client_number].socket);
+	exit_code = AcceptPlayer(&(connected_clients[client_params->client_number]));
 	if (exit_code != SERVER_SUCCESS)
 	{
 		// TODO: Terminate the thread for this client
@@ -261,7 +267,7 @@ int AcceptPlayer(client_info_t* client)
 	message_t* message = NULL;
 	int receive_result;
 
-	receive_result = ReceiveMessage(client->socket, message);
+	receive_result = ReceiveMessage(client->socket, &message);
 	if (receive_result != SERVER_SUCCESS)
 	{
 		if (message != NULL)
@@ -272,7 +278,7 @@ int AcceptPlayer(client_info_t* client)
 	if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_REQUEST"))
 	{
 		// TODO: Save the user's name
-		SaveUsername(message->parameters, client);
+		SaveUsername(message->parameters->param_value, client);
 
 		exit_code = SendServerApprovedMessage(client->socket);
 		if (exit_code == SERVER_SUCCESS)
@@ -304,7 +310,7 @@ int HandlePlayer(client_info_t* client)
 	int receive_result;
 	int exit_code = SERVER_SUCCESS;
 
-	receive_result = ReceiveMessage(client->socket, message);
+	receive_result = ReceiveMessage(client->socket, &message);
 	if (receive_result != SERVER_SUCCESS)
 	{
 		if (message != NULL)
