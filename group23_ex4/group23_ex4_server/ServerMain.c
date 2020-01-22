@@ -219,6 +219,15 @@ int RunServer(int port_number)
 	return SERVER_SUCCESS;
 }
 
+translatePlayerMove(char* move)
+{
+
+}
+computeWinner(int first_player_move, int  sec_player_move)
+{
+
+}
+
 static DWORD ClientThread(LPVOID thread_params)
 {
 	//char SendStr[SEND_STR_SIZE];
@@ -231,7 +240,8 @@ static DWORD ClientThread(LPVOID thread_params)
 	client_params_t* client_params;
 	message_t* message;
 	char* accepted_string = NULL;
-
+	int player_1_move;
+	char* player_1_move_string;
 	client_params = (client_params_t*)thread_params;
 	
 	message= (message_t*)malloc(sizeof(message_t));
@@ -291,16 +301,22 @@ static DWORD ClientThread(LPVOID thread_params)
 		// breake message into message type and it's other parts
 		printf("Received message: %s\n", accepted_string);
 		GetMessageStruct(message, accepted_string);
-		int move = GetComputerMove();
 		if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
 		{
-			int move = GetComputerMove();
+			int comp_move = GetComputerMove();
 			SendServerMoveMessage(connected_clients[client_params->client_number].socket);
+			//player_1_move
+			strcpy_s(player_1_move_string, 10, ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket));
+			player_1_move = translatePlayerMove(player_1_move_string);
+			computeWinner(comp_move, player_1_move);
 		}
 	}
 	
 	free(message);
 }
+
+
+
 
 MOVE_TYPE GetComputerMove()
 {
