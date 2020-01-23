@@ -722,101 +722,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 		return 0x555;
 }
 
-//The function gets the raw string from user and the type of message to send to server: username/play/message, and returns the formated message to send to the server
-char* ConstructMessage(char *str, char *type)
-{
-	char *return_string = NULL, temp[10];
-	int i = 0, j = 0;
-
-	return_string = (char*)malloc(MAX_LINE * sizeof(char));
-	if (return_string == NULL) {
-		printf("Malloc Error in ConstructMessage function\n");
-		exit(-1);
-	}
-
-	if (STRINGS_ARE_EQUAL(type, "play")) {
-		strcpy(return_string, "PLAY_REQUEST");
-		return_string[12] = ':';
-		j = 13;
-		i = 5;
-		while (str[i] != '\0') {
-			if (str[i] == '\n')
-				break;
-			return_string[j] = str[i];
-			j++;
-			i++;
-		}
-		return_string[j] = '\0';
-	}
-	if (STRINGS_ARE_EQUAL(type, "message")) {
-		strcpy(return_string, "SEND_MESSAGE");
-		return_string[12] = ':';
-		j = 13;
-		i = 8;
-		while (str[i] != '\0') {
-			if (str[i] == '\n')
-				break;
-			if (str[i] == ' ') {
-				return_string[j] = ';';
-				return_string[j + 1] = ' ';
-				return_string[j + 2] = ';';
-				i++;
-				j = j + 3;
-			}
-			else {
-				return_string[j] = str[i];
-				j++;
-				i++;
-			}
-		}
-		return_string[j] = '\0';
-	}
-	if (STRINGS_ARE_EQUAL(type, "username")) {
-		strcpy(return_string, "NEW_USER_REQUEST");
-		return_string[16] = ':';
-		j = 17;
-		i = 0;
-		while (str[i] != '\0') {
-			if (str[i] == '\n')
-				break;
-			return_string[j] = str[i];
-			j++;
-			i++;
-		}
-		return_string[j] = '\0';
-	}
-
-	return return_string;
-}
-
-//The function detrmins if the string from the user (keyboard or file) is 'play' message (returns 1) or 'message' message (returns 2) or nither (returns 0)
-int MessageType(char *input) {
-	int type = 0;
-	char temp_input_play[MAX_LINE], temp_input_message[MAX_LINE];
-
-	// Coping the input to temps in order to check input type
-	temp_input_play[0] = input[0];
-	temp_input_message[0] = input[0];
-	temp_input_play[1] = input[1];
-	temp_input_message[1] = input[1];
-	temp_input_play[2] = input[2];
-	temp_input_message[2] = input[2];
-	temp_input_play[3] = input[3];
-	temp_input_message[3] = input[3];
-	temp_input_play[4] = '\0';
-	temp_input_message[4] = input[4];
-	temp_input_message[5] = input[5];
-	temp_input_message[6] = input[6];
-	temp_input_message[7] = '\0';
-
-	if (STRINGS_ARE_EQUAL(temp_input_play, "play") && (input[4] == ' ')) // It is a 'play' message
-		type = 1;
-	if (STRINGS_ARE_EQUAL(temp_input_message, "message") && (input[7] == ' ')) // It is a 'message' message
-		type = 2;
-
-	return type;
-}
-
 //The function terminats all threads. For type "clean" -> termination with code 0, and returns 0. For type "dirty" -> termination with code 0x555, and returns 0x555.
 void thread_terminator(char *type) {
 
@@ -830,22 +735,6 @@ void thread_terminator(char *type) {
 		TerminateThread(hThread[1], 0x555);
 		TerminateThread(hThread[2], 0x555);
 	}
-}
-
-//The function gets file pointer to logfile, format char: Received from server/Send to server, and the message itself, and write it to logfile
-void PrintToLogFile(FILE *ptr, char *format, char *message) {
-	DWORD wait_code;
-	BOOL release_res;
-
-	wait_code = WaitForSingleObject(logfile_mutex, INFINITE);
-	if (wait_code != WAIT_OBJECT_0) printf("Fail while waiting for logfile mutex");
-
-	//critical region
-	fprintf(ptr, "%s: %s\n", format, message); //Writing to logfile
-	//end of critical region
-
-	release_res = ReleaseMutex(logfile_mutex);
-	if (release_res == FALSE) printf("Fail releasing logfile mutex");
 }
 
 int PrintMainMenu()
