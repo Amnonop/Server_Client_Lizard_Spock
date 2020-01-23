@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "MessageTools.h"
 #include "../Shared/StringTools.h"
 
@@ -19,7 +20,7 @@ int GetMessageStruct(message_t *message, const char *raw_string)
 	char* termination_char;
 	int param_length;
 
-	exit_code = CopyString(raw_string, &raw_message_copy);
+	raw_message_copy = CopyString(raw_string);
 
 	// Initialize param linked list
 	message->parameters = NULL;
@@ -27,13 +28,13 @@ int GetMessageStruct(message_t *message, const char *raw_string)
 	token = strtok_s(raw_message_copy, message_type_delim, &next_token);
 	
 	// Check if the message has parameters
-	if (strlen(token) == strlen(raw_message_copy))
+	if (strlen(token) == strlen(raw_string))
 		message_type_length = strlen(token); // Copy without '\n'
 	else
 		message_type_length = strlen(token) + 1;
 	
 	message->message_type = (char*)malloc(sizeof(char)*message_type_length);
-	strcpy_s(message->message_type, message_type_length, token);
+	strncpy_s(message->message_type, message_type_length, token, message_type_length - 1);
 
 	token = strtok_s(NULL, param_delim, &next_token);
 	while (token)
@@ -87,7 +88,7 @@ param_node_t* CreateParameter(const char* param_value, int value_length)
 	if (new_node != NULL)
 	{
 		new_node->param_value = (char*)malloc(sizeof(char)*value_length);
-		strcpy_s(new_node->param_value, value_length, param_value);
+		strncpy_s(new_node->param_value, value_length, param_value, value_length - 1);
 
 		new_node->next = NULL;
 	}

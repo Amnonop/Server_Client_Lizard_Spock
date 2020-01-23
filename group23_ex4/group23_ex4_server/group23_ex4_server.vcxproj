@@ -116,6 +116,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Shared\MessageTools.c" />
+    <ClCompile Include="..\Shared\StringTools.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="server.c" />
     <ClCompile Include="ServerMain.c" />
@@ -124,6 +125,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\MessageTools.h" />
+    <ClInclude Include="..\Shared\StringTools.h" />
     <ClInclude Include="Commons.h" />
     <ClInclude Include="server.h" />
     <ClInclude Include="ServerMain.h" />
