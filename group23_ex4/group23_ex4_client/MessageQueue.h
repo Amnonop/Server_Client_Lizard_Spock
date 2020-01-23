@@ -6,7 +6,8 @@
 typedef enum
 {
 	QUEUE_SUCCESS,
-	QUEUE_ERROR
+	QUEUE_ERROR,
+	QUEUE_MEM_ALLOC_FAILED
 } MESSAGE_QUEUE_CODES;
 
 // A struct representing a message in the message queue

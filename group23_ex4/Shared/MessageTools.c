@@ -25,12 +25,12 @@ int ReceiveMessage(SOCKET socket, message_t** message)
 	receive_result = ReceiveString(&accepted_string, socket);
 	if (receive_result == TRNS_FAILED)
 	{
-		printf("Player disconnected. Ending communication.\n");
+		printf("Target disconnected. Ending communication.\n");
 		return MSG_TRANS_FAILED;
 	}
 	else if (receive_result == TRNS_DISCONNECTED)
 	{
-		printf("Player disconnected. Ending communication.\n");
+		printf("Target disconnected. Ending communication.\n");
 		return MSG_TRANS_FAILED;
 	}
 

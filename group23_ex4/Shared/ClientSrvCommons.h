@@ -1,6 +1,8 @@
 #ifndef CLIENT_SRV_COMMONS_H
 #define CLIENT_SRV_COMMONS_H
 
+#include "MessageTools.h"
+
 typedef enum
 {
 	ROCK = 0,
@@ -17,5 +19,11 @@ typedef enum
 	LEADERBOARD = 3,
 	QUIT = 4
 } MAIN_MENU_OPTIONS;
+
+typedef enum
+{
+	OPT_REPLAY = 1,
+	OPT_MAIN_MENU = 2
+} GAME_OVER_MENU_OPTIONS;
 
 #endif

@@ -122,6 +122,7 @@
     <ClCompile Include="..\Shared\socketSendReceive.c" />
     <ClCompile Include="..\Shared\StringTools.c" />
     <ClCompile Include="client.c" />
+    <ClCompile Include="ClientGetMessages.c" />
     <ClCompile Include="ClientMessages.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="MessageQueue.c" />
@@ -132,6 +133,7 @@
     <ClInclude Include="..\Shared\socketS.h" />
     <ClInclude Include="..\Shared\StringTools.h" />
     <ClInclude Include="client.h" />
+    <ClInclude Include="ClientGetMessages.h" />
     <ClInclude Include="ClientMessages.h" />
     <ClInclude Include="Commons.h" />
     <ClInclude Include="MessageQueue.h" />

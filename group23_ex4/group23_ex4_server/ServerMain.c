@@ -8,6 +8,7 @@
 #include "../Shared/MessageTools.h"
 #include "../Shared/ClientSrvCommons.h"
 #include "ServerMessages.h"
+#include "ServerGetMessages.h"
 #include "../Shared/socketS.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
@@ -402,7 +403,7 @@ int Play(client_info_t* client)
 	MOVE_TYPE computer_move;
 	MOVE_TYPE player_move;
 	int winner;
-	MAIN_MENU_OPTIONS client_choice = CLIENT_CPU;
+	GAME_OVER_MENU_OPTIONS user_choice = OPT_REPLAY;
 
 	while (!end_game)
 	{
@@ -434,7 +435,12 @@ int Play(client_info_t* client)
 		if (exit_code != SERVER_SUCCESS)
 			return exit_code;
 
-		if (client_choice != CLIENT_CPU)
+		exit_code = GetPlayerGameOverMenuChoice(client->socket, &user_choice);
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
+		if (user_choice != OPT_REPLAY)
 			end_game = TRUE;
 	}
 }
@@ -448,5 +454,9 @@ int CheckWinner(MOVE_TYPE player_a_move, MOVE_TYPE player_b_move)
 
 MOVE_TYPE GetComputerMove()
 {
-	return rand() % 5;
+	MOVE_TYPE move;
+
+	move = rand() % 5;
+	printf("Server is playing: %d\n", move);
+	return move;
 }
