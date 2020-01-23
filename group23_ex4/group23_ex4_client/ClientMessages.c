@@ -78,3 +78,41 @@ int SendPlayerMoveMessage(MOVE_TYPE player_move, message_queue_t* message_queue)
 	printf("Sending CLIENT_PLAYER_MOVE.\n");
 	return EnqueueMsg(message_queue, message_string);
 }
+
+int SendClientReplayMessage(message_queue_t* message_queue)
+{
+	char* message_name = "CLIENT_REPLAY";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	if (message_string == NULL)
+	{
+		return QUEUE_MEM_ALLOC_FAILED;
+	}
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	// Send the message
+	return EnqueueMsg(message_queue, message_string);
+}
+
+int SendMainMenuMessage(message_queue_t* message_queue)
+{
+	char* message_name = "CLIENT_MAIN_MENU";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	if (message_string == NULL)
+	{
+		return QUEUE_MEM_ALLOC_FAILED;
+	}
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	// Send the message
+	return EnqueueMsg(message_queue, message_string);
+}

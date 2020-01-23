@@ -495,10 +495,19 @@ int Play(SOCKET socket)
 		user_choice = GetGameOverMenuChoice();
 		if (user_choice == OPT_REPLAY)
 		{
-			// TODO: send CLIENT_REPLAY
+			exit_code = SendClientReplayMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
 		}
 		else
 		{
+			exit_code = SendMainMenuMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
 			game_over = TRUE;
 		}
 	}
