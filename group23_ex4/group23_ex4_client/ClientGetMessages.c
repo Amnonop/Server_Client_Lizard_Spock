@@ -53,6 +53,35 @@ int GetGameResultsMessage(SOCKET socket, game_results_t** game_results)
 	return exit_code;
 }
 
+int GetGameOverMenuMessage(SOCKET socket)
+{
+	int exit_code;
+	message_t* message = NULL;
+
+	exit_code = ReceiveMessage(socket, &message);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+		{
+			free(message);
+			return CLIENT_RECEIVE_MSG_FAILED;
+		}
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_GAME_OVER_MENU"))
+	{
+		exit_code = CLIENT_SUCCESS;
+	}
+	else
+	{
+		printf("Expected to get SERVER_GAME_OVER_MENU but got %s instead.\n", message->message_type);
+		exit_code = CLIENT_UNEXPECTED_MESSAGE;
+	}
+
+	free(message);
+	return exit_code;
+}
+
 game_results_t* ParseGameResultsMessage(param_node_t* head)
 {
 	int param_index = OPONENT_NAME;

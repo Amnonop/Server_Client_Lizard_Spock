@@ -18,4 +18,10 @@ typedef enum
 	QUIT = 4
 } MAIN_MENU_OPTIONS;
 
+typedef enum
+{
+	OPT_REPLAY = 1,
+	OPT_MAIN_MENU = 2
+} GAME_OVER_MENU_OPTIONS;
+
 #endif

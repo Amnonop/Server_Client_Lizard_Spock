@@ -36,6 +36,7 @@ int ShowPlayMoveMenuMessage();
 MOVE_TYPE ParsePlayerMove(const char* player_move);
 int GetPlayerMoveRequestMessage(SOCKET socket);
 void ShowGameResults(game_results_t* game_results);
+GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice();
 
 //Reading data coming from the server Thread
 static DWORD RecvDataThread(LPVOID lpParam)
@@ -454,34 +455,53 @@ int Play(SOCKET socket)
 	char user_move[9];
 	MOVE_TYPE player_move;
 	game_results_t* game_results = NULL;
+	GAME_OVER_MENU_OPTIONS user_choice;
+	BOOL game_over = FALSE;
 
-	exit_code = GetPlayerMoveRequestMessage(socket);
-	if (exit_code != CLIENT_SUCCESS)
-		return exit_code;
-
-	ShowPlayMoveMenuMessage();
-	scanf_s("%s", user_move, (rsize_t)sizeof user_move);
-	player_move = ParsePlayerMove(user_move);
-
-	// TODO: Send CLIENT_PLAYER_MOVE message
-	exit_code = SendPlayerMoveMessage(player_move, msg_queue);
-	if (exit_code != QUEUE_SUCCESS)
+	while (!game_over)
 	{
-		return CLIENT_SEND_MSG_FAILED;
+		exit_code = GetPlayerMoveRequestMessage(socket);
+		if (exit_code != CLIENT_SUCCESS)
+			return exit_code;
+
+		ShowPlayMoveMenuMessage();
+		scanf_s("%s", user_move, (rsize_t)sizeof user_move);
+		player_move = ParsePlayerMove(user_move);
+
+		// TODO: Send CLIENT_PLAYER_MOVE message
+		exit_code = SendPlayerMoveMessage(player_move, msg_queue);
+		if (exit_code != QUEUE_SUCCESS)
+		{
+			return CLIENT_SEND_MSG_FAILED;
+		}
+
+		// TODO: Wait SERVER_GAME_RESULTS message
+		exit_code = GetGameResultsMessage(socket, &game_results);
+		if (exit_code != CLIENT_SUCCESS)
+		{
+			return exit_code;
+		}
+		ShowGameResults(game_results);
+		FreeGameResults(game_results);
+
+		// TODO: Wait SERVER_GAME_OVER_MENU
+		exit_code = GetGameOverMenuMessage(socket);
+		if (exit_code != CLIENT_SUCCESS)
+		{
+			return exit_code;
+		}
+
+		// TODO: Handle client GAME_OVER choice
+		user_choice = GetGameOverMenuChoice();
+		if (user_choice == OPT_REPLAY)
+		{
+			// TODO: send CLIENT_REPLAY
+		}
+		else
+		{
+			game_over = TRUE;
+		}
 	}
-
-	// TODO: Wait SERVER_GAME_RESULTS message
-	exit_code = GetGameResultsMessage(socket, &game_results);
-	if (exit_code != CLIENT_SUCCESS)
-	{
-		return exit_code;
-	}
-	ShowGameResults(game_results);
-	FreeGameResults(game_results);
-
-	// TODO: Wait SERVER_GAME_OVER_MENU
-
-	// TODO: Handle client GAME_OVER choice
 }
 
 int GetPlayerMoveRequestMessage(SOCKET socket)
@@ -524,6 +544,19 @@ void ShowGameResults(game_results_t* game_results)
 	printf("You played: %s\n", game_results->player_move);
 	printf("%s played: %s\n", game_results->oponent_name, game_results->oponent_move);
 	printf("%s won!\n", game_results->winner);
+}
+
+GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice()
+{
+	GAME_OVER_MENU_OPTIONS user_choice;
+
+	printf("Choose what to do next:\n");
+	printf("1.	Play again\n");
+	printf("2.	Return to the main menu\n");
+
+	scanf_s("%d", &user_choice);
+
+	return user_choice;
 }
 
 MOVE_TYPE ParsePlayerMove(const char* player_move)
