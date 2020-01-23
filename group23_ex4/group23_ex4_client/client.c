@@ -595,57 +595,19 @@ int MainClient(char* server_ip, int port_number, char* username)
 	HANDLE hThread[2];
 	WSADATA wsaData; 
 	int startup_result;
+	int connect_result;
+	SERVER_CONNECT_MENU_OPTIONS user_choice;
 
 	client_thread_params_t thread_params;
-	
-	startup_result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (startup_result != NO_ERROR)
-		printf("Error at WSAStartup()\n");
 
-	m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (m_socket == INVALID_SOCKET) {
-		printf("Error at socket(): %ld\n", WSAGetLastError());
-		WSACleanup();
-		return;
-	}
-
-	client_service.sin_family = AF_INET;
-	client_service.sin_addr.s_addr = inet_addr(server_ip);
-	client_service.sin_port = htons(port_number);
-
-	if (connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR) 
-	{
-		printf("Failed connecting to server on %s:%d. Exiting\n", server_ip, port_number);
-		WSACleanup();
-		exit(0x555);
-	}
-	else
-		//printf("Connected to server on %s:%s\n", SERVER_ADDRESS_STR, port_number);
-
-	thread_params.username = username;
-	thread_params.server_ip = server_ip;
-	thread_params.server_port = port_number;
-	thread_params.socket = m_socket;
-
-	//--> Creating mutex for logfile writing
-	logfile_mutex = CreateMutex(
-		NULL,	/* default security attributes */
-		FALSE,	/* initially not owned */
-		NULL);	/* unnamed mutex */
-	if (NULL == logfile_mutex)
-	{
-		printf("Error when creating logfile mutex\n", GetLastError());
-		exit(0x555);
-	}
-
-	//--> Creating message queue
+	// Initialize the message queue
 	msg_queue = CreateMessageQueue();
 	if (msg_queue == NULL) {
-		printf("Error creating msg_queue at MainClient function");
-		exit(0x555);
+		printf("Error initializing the message queue.\n");
+		return CLIENT_MSG_QUEUE_INIT_FAILED;
 	}
 
-	//--> Opening threads
+	// Start the Send Data thread
 	hThread[0] = CreateThread(
 		NULL,
 		0,
@@ -654,6 +616,69 @@ int MainClient(char* server_ip, int port_number, char* username)
 		0,
 		NULL
 	);
+	if (hThread[0] == NULL)
+	{
+		// TODO: Free message queue
+		return CLIENT_THREAD_CREATION_FAILED;
+	}
+	
+	startup_result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (startup_result != NO_ERROR)
+	{
+		printf("Error at WSAStartup()\n");
+		// TODO: Free message queue, Send Data thread handler
+		return CLIENT_WSA_STARTUP_ERROR;
+	}
+
+	m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (m_socket == INVALID_SOCKET) {
+		printf("Error at socket(): %ld\n", WSAGetLastError());
+		WSACleanup();
+		return CLIENT_SOCKET_CREATION_FAILED;
+	}
+
+	client_service.sin_family = AF_INET;
+	client_service.sin_addr.s_addr = inet_addr(server_ip);
+	client_service.sin_port = htons(port_number);
+
+	// Connection to server
+	while (TRUE)
+	{
+		connect_result = connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service));
+		if (connect_result == SOCKET_ERROR)
+		{
+			printf("Failed connected to server on %s:%d\n", server_ip, port_number);
+			printf("Choose what to do next:\n");
+			printf("1.	Try to reconnect\n");
+			printf("2.	Exit\n");
+			
+			scanf_s("%d", &user_choice);
+			if (user_choice == OPT_EXIT)
+			{
+				// TODO: Cleanup
+				return CLIENT_SUCCESS; // User chose to exit
+			}
+		}
+		else
+		{
+			printf("Connected to server on %s:%d\n", server_ip, port_number);
+			break;
+		}
+	}
+	//if (connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR) 
+	//{
+	//	printf("Failed connecting to server on %s:%d. Exiting\n", server_ip, port_number);
+	//	WSACleanup();
+	//	exit(0x555);
+	//}
+	//else
+	//	//printf("Connected to server on %s:%s\n", SERVER_ADDRESS_STR, port_number);
+
+	thread_params.username = username;
+	thread_params.server_ip = server_ip;
+	thread_params.server_port = port_number;
+	thread_params.socket = m_socket;
+	
 	/*hThread[1] = CreateThread(
 		NULL,
 		0,
@@ -684,8 +709,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 	closesocket(m_socket); // Close socket
 
 	WSACleanup();
-
-	if (logfile_mutex != NULL) CloseHandle(logfile_mutex); // Close logfile mutex handle
 
 	CloseHandle(msg_queue->access_mutex); // Message queue access_mutex
 	CloseHandle(msg_queue->msgs_count_semaphore); // Message queue msgs_count_semaphore
