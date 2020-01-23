@@ -206,6 +206,73 @@ int RunServer(int port_number)
 	return SERVER_SUCCESS;
 }
 
+int translatePlayerMove(char* move)
+{
+	if ((move[0] == "s") || (move[0] == "S"))
+	{
+		if ((move[1] == "c") || (move[1] == "C"))
+			return SCISSORS;
+		else
+			return SPOCK;
+	}
+	else if ((move[0] == "l") || (move[0] == "L"))
+	{
+		return LIZARD;
+	}
+	else if ((move[0] == "r") || (move[0] == "R"))
+	{
+		return ROCK;
+	}
+	else if ((move[0] == "p") || (move[0] == "P"))
+	{
+		return PAPER;
+	}
+}
+int computeWinner(int first_player_move, int  sec_player_move)
+{
+	//tie//
+	if (first_player_move = sec_player_move)
+		return 0;
+	
+	else if (first_player_move == ROCK)
+	{
+		if ((sec_player_move == SCISSORS) || (sec_player_move == LIZARD))
+			return 1;
+		else return 2;
+	}
+	else if (first_player_move == PAPER)
+	{
+		if ((sec_player_move == ROCK) || (sec_player_move == SPOCK))
+			return 1;
+		else return 2;
+	}
+
+	else if (first_player_move == SCISSORS)
+	{
+		if ((sec_player_move == PAPER) || (sec_player_move == LIZARD))
+			return 1;
+		else return 2;
+	}
+
+	else if (first_player_move == LIZARD)
+	{
+		if ((sec_player_move == PAPER) || (sec_player_move == SPOCK))
+			return 1;
+		else return 2;
+	}
+
+	else if (first_player_move == SPOCK)
+	{
+		if ((sec_player_move == ROCK) || (sec_player_move == SCISSORS))
+			return 1;
+		else return 2;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 static DWORD ClientThread(LPVOID thread_params)
 {
 	//char SendStr[SEND_STR_SIZE];
@@ -218,7 +285,8 @@ static DWORD ClientThread(LPVOID thread_params)
 	client_params_t* client_params;
 	message_t* message = NULL;
 	char* accepted_string = NULL;
-
+	int player_1_move;
+	char* player_1_move_string;
 	client_params = (client_params_t*)thread_params;
 	
 	exit_code = AcceptPlayer(&(connected_clients[client_params->client_number]));
