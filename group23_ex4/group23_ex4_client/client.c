@@ -430,7 +430,7 @@ int MainClient(char* server_ip, int port_number, char* username)
 {
 	int exit_code;
 	SOCKADDR_IN client_service;
-	HANDLE hThread[2];
+	HANDLE hThread[3];
 	WSADATA wsaData; 
 	int startup_result;
 
