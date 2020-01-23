@@ -7,7 +7,6 @@
 #include <Windows.h>
 
 #define SERVER_PORT 2345
-#define STRINGS_ARE_EQUAL( Str1, Str2 ) ( strcmp( (Str1), (Str2) ) == 0 )
 
 #define MAX_BUFFER 5
 #define MAX_LINE 256

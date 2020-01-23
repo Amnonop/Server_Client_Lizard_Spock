@@ -448,5 +448,9 @@ int CheckWinner(MOVE_TYPE player_a_move, MOVE_TYPE player_b_move)
 
 MOVE_TYPE GetComputerMove()
 {
-	return rand() % 5;
+	MOVE_TYPE move;
+
+	move = rand() % 5;
+	printf("Server is playing: %d\n", move);
+	return move;
 }

@@ -5,7 +5,8 @@ typedef enum
 {
 	MSG_SUCCESS,
 	MSG_MEM_ALLOC_FAILED,
-	MSG_TRANS_FAILED
+	MSG_TRANS_FAILED,
+	MSG_MESSAGE_PARSE_FAILED
 } MESSAGE_CODES;
 
 typedef struct param_node {

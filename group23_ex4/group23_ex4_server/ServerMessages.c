@@ -6,6 +6,7 @@
 #include "../Shared/socketS.h"
 
 int SendMessageWithoutParams(const char* message_type, SOCKET socket);
+char* MoveTypeToString(MOVE_TYPE move);
 
 int SendPlayerMoveRequestMessage(SOCKET socket)
 {
@@ -19,7 +20,7 @@ int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move)
 	message_t* message = NULL;
 	int receive_result;
 
-	receive_result = ReceiveMessage(client_socket, message);
+	receive_result = ReceiveMessage(client_socket, &message);
 	if (receive_result != SERVER_SUCCESS)
 	{
 		if (message != NULL)
@@ -78,12 +79,47 @@ int ParsePlayerMoveMessage(message_t* message, MOVE_TYPE* player_move)
 
 int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move, MOVE_TYPE player_move, const char* winner_name, SOCKET socket)
 {
+	const char* message_name = "SERVER_GAME_RESULTS";
+	int message_length;
+	char* message_string;
+	TransferResult_t send_result;
+	char* oponent_move_str;
+	char* player_move_str;
+
+	oponent_move_str = MoveTypeToString(oponent_move);
+	player_move_str = MoveTypeToString(player_move);
+
+	// Build message string
+	message_length = strlen(message_name) + 1 + strlen(oponent_username) + 1 + strlen(oponent_move_str) + 1 + strlen(player_move_str) + 1 + strlen(winner_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	if (message_string == NULL)
+		return SERVER_MEM_ALLOC_FAILED;
+
+	sprintf_s(message_string, message_length, "%s:%s;%s;%s;%s\n", 
+		message_name, 
+		oponent_username, 
+		oponent_move_str, 
+		player_move_str, 
+		winner_name);
+
+	printf("Sending message: %s\n", message_string);
+
+	send_result = SendString(message_string, socket);
+	if (send_result == TRNS_FAILED)
+	{
+		printf("Service socket error while writing, closing thread.\n");
+		closesocket(socket);
+		return SERVER_TRANS_FAILED;
+	}
+
+	free(message_string);
 	return SERVER_SUCCESS;
 }
 
 int SendGameOverMenu(SOCKET socket)
 {
-	return SERVER_SUCCESS;
+	const char* message_name = "SERVER_GAME_OVER_MENU";
+	return SendMessageWithoutParams(message_name, socket);
 }
 
 int SendMessageWithoutParams(const char* message_name, SOCKET socket)
@@ -112,4 +148,28 @@ int SendMessageWithoutParams(const char* message_name, SOCKET socket)
 
 	free(message_string);
 	return SERVER_SUCCESS;
+}
+
+char* MoveTypeToString(MOVE_TYPE move)
+{
+	switch (move)
+	{
+		case (ROCK):
+			return "ROCK";
+			break;
+		case (PAPER):
+			return "PAPER";
+			break;
+		case(SCISSORS):
+			return "SCISSORS";
+			break;
+		case (LIZARD):
+			return "LIZARD";
+			break;
+		case (SPOCK):
+			return "SPOCK";
+			break;
+		default:
+			break;
+	}
 }

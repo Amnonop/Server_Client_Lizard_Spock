@@ -41,7 +41,7 @@ int SendClientCPUMessage(message_queue_t* message_queue)
 
 int SendPlayerMoveMessage(MOVE_TYPE player_move, message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_CPU";
+	char* message_name = "CLIENT_PLAYER_MOVE";
 	int message_length;
 	char* message_string;
 	char* player_move_str = "";
@@ -75,5 +75,6 @@ int SendPlayerMoveMessage(MOVE_TYPE player_move, message_queue_t* message_queue)
 	sprintf_s(message_string, message_length, "%s:%s\n", message_name, player_move_str);
 
 	// Send the message
+	printf("Sending CLIENT_PLAYER_MOVE.\n");
 	return EnqueueMsg(message_queue, message_string);
 }
