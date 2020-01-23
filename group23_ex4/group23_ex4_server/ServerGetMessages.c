@@ -4,6 +4,29 @@
 #include "../Shared/ClientSrvCommons.h"
 #include "../Shared/MessageTools.h"
 
+int GetPlayerMainMenuChoice(SOCKET socket, MAIN_MENU_OPTIONS* user_choice)
+{
+	int exit_code = SERVER_SUCCESS;
+	message_t* message = NULL;
+
+	exit_code = ReceiveMessage(socket, &message);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+			free(message);
+		return SERVER_RECEIVE_MSG_FAILED;
+	}
+
+	if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
+	{
+		*user_choice = CLIENT_CPU;
+		exit_code = SERVER_SUCCESS;
+	}
+
+	free(message);
+	return SERVER_SUCCESS;
+}
+
 int GetPlayerGameOverMenuChoice(SOCKET client_socket, GAME_OVER_MENU_OPTIONS* user_choice)
 {
 	int exit_code = SERVER_SUCCESS;

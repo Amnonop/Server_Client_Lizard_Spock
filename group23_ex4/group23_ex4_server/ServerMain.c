@@ -276,18 +276,9 @@ int computeWinner(int first_player_move, int  sec_player_move)
 
 static DWORD ClientThread(LPVOID thread_params)
 {
-	//char SendStr[SEND_STR_SIZE];
-	BOOL Done = FALSE;
-	TransferResult_t SendRes;
-	TransferResult_t RecvRes;
-	int found_place;
 	int exit_code;
-
 	client_params_t* client_params;
-	message_t* message = NULL;
-	char* accepted_string = NULL;
-	int player_1_move;
-	char* player_1_move_string;
+
 	client_params = (client_params_t*)thread_params;
 	
 	exit_code = AcceptPlayer(&(connected_clients[client_params->client_number]));
@@ -300,6 +291,10 @@ static DWORD ClientThread(LPVOID thread_params)
 	while (TRUE)
 	{
 		exit_code = HandlePlayer(&(connected_clients[client_params->client_number]));
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
 		//// waiting for new message
 		//accepted_string = NULL;
 		//RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
@@ -326,8 +321,6 @@ static DWORD ClientThread(LPVOID thread_params)
 		//	SendServerMoveMessage(connected_clients[client_params->client_number].socket);
 		//}
 	}
-	
-	free(message);
 }
 
 int AcceptPlayer(client_info_t* client)
@@ -350,10 +343,6 @@ int AcceptPlayer(client_info_t* client)
 		SaveUsername(message->parameters->param_value, client);
 
 		exit_code = SendServerApprovedMessage(client->socket);
-		if (exit_code == SERVER_SUCCESS)
-		{
-			exit_code = SendServerMenuMessage(client->socket);
-		}
 	}
 	else
 	{
@@ -378,22 +367,39 @@ int HandlePlayer(client_info_t* client)
 	message_t* message = NULL;
 	int receive_result;
 	int exit_code = SERVER_SUCCESS;
+	MAIN_MENU_OPTIONS user_choice;
 
-	receive_result = ReceiveMessage(client->socket, &message);
-	if (receive_result != SERVER_SUCCESS)
+	while (TRUE)
 	{
-		if (message != NULL)
-			free(message);
-		return receive_result;
-	}
+		exit_code = SendServerMenuMessage(client->socket);
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
 
-	if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
-	{
-		exit_code = Play(client);
-	}
+		exit_code = GetPlayerMainMenuChoice(client->socket, &user_choice);
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
 
-	free(message);
-	return SERVER_SUCCESS;
+		switch (user_choice)
+		{
+			case CLIENT_CPU:
+				exit_code = Play(client);
+				break;
+			case QUIT:
+				exit_code = SERVER_SUCCESS;
+				break;
+			default:
+				break;
+		}
+
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
+	}
 }
 
 int Play(client_info_t* client)
