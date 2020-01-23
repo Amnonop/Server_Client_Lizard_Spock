@@ -3,7 +3,11 @@
 
 #include <Windows.h>
 
-#define QUEUE_ERROR -10
+typedef enum
+{
+	QUEUE_SUCCESS,
+	QUEUE_ERROR
+} MESSAGE_QUEUE_CODES;
 
 // A struct representing a message in the message queue
 typedef struct message_queue_node

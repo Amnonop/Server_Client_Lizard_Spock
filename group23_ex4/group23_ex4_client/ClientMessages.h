@@ -4,5 +4,6 @@
 #include "MessageQueue.h"
 
 int SendClientRequestMessage(char* username, message_queue_t* message_queue);
+int SendClientCPUMessage(message_queue_t* message_queue);
 
 #endif

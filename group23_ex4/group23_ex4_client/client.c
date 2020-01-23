@@ -325,6 +325,7 @@ int computePlayerMove(char* player_move)
 //User application Thread (managing all user inputs to the client)
 static DWORD ApplicationThread(LPVOID lpParam)
 {
+	int exit_code;
 	char input[MAX_LINE], *send_message = NULL;
 	int run = 0, type = 0;
 	client_thread_params_t* thread_params;
@@ -342,7 +343,11 @@ static DWORD ApplicationThread(LPVOID lpParam)
 			case FIRST_CONNECTION:
 				// Send CLIENT_REQUEST message with username to server
 				client_state = WAITING_SERVER_APPROVAL;
-				SendClientRequestMessage(thread_params->username, msg_queue);
+				exit_code = SendClientRequestMessage(thread_params->username, msg_queue);
+				if (exit_code != QUEUE_SUCCESS)
+				{
+					return CLIENT_SEND_MSG_FAILED;
+				}
 				break;
 			case SERVER_APPROVED:
 				//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
@@ -354,7 +359,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				{
 					case PLAY_VS_COMPUTER:
 						client_state = WAITING_TO_START_GAME;
-						SendClientCPUMessage();
+						SendClientCPUMessage(msg_queue);
 						break;
 					default:
 						break;
@@ -536,22 +541,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 		return 0;
 	else // The programm got an error
 		return 0x555;
-}
-
-int SendClientCPUMessage()
-{
-	char* message_name = "CLIENT_CPU";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	// Send the message
-	EnqueueMsg(msg_queue, message_string);
 }
 
 int playMoveMenuMessage()

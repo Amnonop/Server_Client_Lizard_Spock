@@ -111,7 +111,7 @@ int EnqueueMsg(message_queue_t* msg_queue, char *msg)
 		return(QUEUE_ERROR);
 	}
 
-	return 0;
+	return QUEUE_SUCCESS;
 }
 
 //The function gets pointer to message and returns a message string from the buffer
