@@ -42,6 +42,9 @@
     <ClCompile Include="..\Shared\socketSendReceive.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ServerGetMessages.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="server.h">
@@ -63,6 +66,12 @@
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\MessageTools.h">
+      <Filter>Shared Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerGetMessages.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\ClientSrvCommons.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
   </ItemGroup>

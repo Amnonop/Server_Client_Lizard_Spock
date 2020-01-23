@@ -1,6 +1,8 @@
 #ifndef CLIENT_SRV_COMMONS_H
 #define CLIENT_SRV_COMMONS_H
 
+#include "MessageTools.h"
+
 typedef enum
 {
 	ROCK = 0,
