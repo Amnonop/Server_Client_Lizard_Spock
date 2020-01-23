@@ -12,8 +12,8 @@ typedef enum
 
 typedef enum
 {
-	CLIENT_CPU = 1,
-	CLIENT_VERSUS = 2,
+	CLIENT_VERSUS = 1,
+	CLIENT_CPU = 2,
 	LEADERBOARD = 3,
 	QUIT = 4
 } MAIN_MENU_OPTIONS;

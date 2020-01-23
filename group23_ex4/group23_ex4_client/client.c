@@ -28,7 +28,7 @@ message_queue_t* msg_queue = NULL; // pointer to send message buffer
 CLIENT_STATE client_state = FIRST_CONNECTION;
 
 int HandleClientRequest(char* username, SOCKET socket);
-int GetMainMenuMessage(SOCKET socket)
+int GetMainMenuMessage(SOCKET socket);
 int PrintMainMenu();
 int PlayMove();
 int ShowPlayMoveMenuMessage();

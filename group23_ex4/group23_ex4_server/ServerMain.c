@@ -45,7 +45,7 @@ int SendServerApprovedMessage(SOCKET player)
 
 	printf("Sending message: %s\n", message_string);
 
-	SendRes = SendString(message_name, player);
+	SendRes = SendString(message_string, player);
 	if (SendRes == TRNS_FAILED)
 	{
 		printf("Service socket error while writing, closing thread.\n");
@@ -70,7 +70,7 @@ int SendServerMenuMessage(SOCKET player)
 
 	printf("Sending message: %s\n", message_string);
 
-	SendRes = SendString(message_name, player);
+	SendRes = SendString(message_string, player);
 	if (SendRes == TRNS_FAILED)
 	{
 		printf("Service socket error while writing, closing thread.\n");

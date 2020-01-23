@@ -102,7 +102,7 @@ int SendMessageWithoutParams(const char* message_name, SOCKET socket)
 
 	printf("Sending message: %s\n", message_string);
 
-	send_result = SendString(message_name, socket);
+	send_result = SendString(message_string, socket);
 	if (send_result == TRNS_FAILED)
 	{
 		printf("Service socket error while writing, closing thread.\n");
