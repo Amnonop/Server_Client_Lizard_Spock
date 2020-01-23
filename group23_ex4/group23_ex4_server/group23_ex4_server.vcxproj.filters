@@ -30,6 +30,12 @@
     <ClCompile Include="..\Shared\MessageTools.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ServerMessages.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\StringTools.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="server.h">
@@ -45,6 +51,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\MessageTools.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerMessages.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\StringTools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

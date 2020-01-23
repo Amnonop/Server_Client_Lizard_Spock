@@ -9,6 +9,9 @@
 #include "others.h"
 #include "SocketS.h"
 #include "Commons.h"
+#include "MessageQueue.h"
+#include "ClientMessages.h"
+#include "../Shared/ClientSrvCommons.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 
@@ -19,11 +22,14 @@ static my_username[MAX_LINE];
 static HANDLE logfile_mutex; //log file mutex
 HANDLE hThread[3]; // main threads
 int game_started = 0, exit_signal = 0, user_accepted = 0, play_accepted = 0;
-MsgQueue *msg_queue = NULL; // pointer to send message buffer
+message_queue_t* msg_queue = NULL; // pointer to send message buffer
 
 CLIENT_STATE client_state = FIRST_CONNECTION;
 
 int PrintMainMenu();
+int PlayMove();
+int ShowPlayMoveMenuMessage();
+MOVE_TYPE ParsePlayerMove(char* player_move);
 
 BOOL StringsEqual(const char* string_1, const char* string_2)
 {
@@ -300,36 +306,16 @@ static DWORD SendDataThread(void)
 	}
 }
 
-
-int computePlayerMove(char* player_move)
-{
-	if (STRINGS_ARE_EQUAL(player_move, "ROCK"))
-		return 0;
-	else if (STRINGS_ARE_EQUAL(player_move, "PAPER"))
-		return 1;
-	else if (STRINGS_ARE_EQUAL(player_move, "SCISSORS"))
-		return 2;
-	else if (STRINGS_ARE_EQUAL(player_move, "LIZARD"))
-		return 3;
-	else if (STRINGS_ARE_EQUAL(player_move, "SPOCK"))
-		return 4;
-	else
-	{
-		printf("Wrong input, exiting.\n");
-		return (-1);
-	}
-}
-
 //User application Thread (managing all user inputs to the client)
 static DWORD ApplicationThread(LPVOID lpParam)
 {
+	int exit_code;
 	char input[MAX_LINE], *send_message = NULL;
 	int run = 0, type = 0;
 	client_thread_params_t* thread_params;
 	DWORD wait_code;
 	BOOL release_res;
 	int user_choice = -1;
-	char *user_move = NULL;
 
 	thread_params = (client_thread_params_t*)lpParam;
 
@@ -340,7 +326,11 @@ static DWORD ApplicationThread(LPVOID lpParam)
 			case FIRST_CONNECTION:
 				// Send CLIENT_REQUEST message with username to server
 				client_state = WAITING_SERVER_APPROVAL;
-				SendClientRequestMessage(thread_params->username);
+				exit_code = SendClientRequestMessage(thread_params->username, msg_queue);
+				if (exit_code != QUEUE_SUCCESS)
+				{
+					return CLIENT_SEND_MSG_FAILED;
+				}
 				break;
 			case SERVER_APPROVED:
 				//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
@@ -350,18 +340,16 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				scanf_s("%d", &user_choice);
 				switch (user_choice)
 				{
-					case PLAY_VS_COMPUTER:
+					case CLIENT_CPU:
 						client_state = WAITING_TO_START_GAME;
-						SendClientCPUMessage();
-						break;
-					case PLAY_MOVE:
-						playMoveMenuMessage();
-						scanf_s("%s", user_move);
-						int player_move = computePlayerMove(user_move);
+						SendClientCPUMessage(msg_queue);
 						break;
 					default:
 						break;
 				}
+				break;
+			case PLAY_MOVE:
+				PlayMove();
 				break;
 			default:
 				break;
@@ -425,12 +413,60 @@ static DWORD ApplicationThread(LPVOID lpParam)
 	return 0;
 }
 
+int PlayMove()
+{
+	int exit_code;
+	char* user_move = NULL;
+	MOVE_TYPE player_move;
+
+	ShowPlayMoveMenuMessage();
+	scanf_s("%s", user_move);
+	player_move = ParsePlayerMove(user_move);
+
+	// TODO: Send CLIENT_PLAYER_MOVE message
+	exit_code = SendPlayerMoveMessage(player_move, msg_queue);
+	if (exit_code != QUEUE_SUCCESS)
+	{
+		return CLIENT_SEND_MSG_FAILED;
+	}
+
+	// TODO: Wait SERVER_GAME_RESULTS message
+
+	// TODO: Wait SERVER_GAME_OVER_MENU
+
+	// TODO: Handle client GAME_OVER choice
+}
+
+int ShowPlayMoveMenuMessage()
+{
+	printf("Choose a move from the list: Rock, Papar, Scissors, Lizard or Spock:\n");
+}
+
+MOVE_TYPE ParsePlayerMove(char* player_move)
+{
+	if (STRINGS_ARE_EQUAL(player_move, "ROCK"))
+		return ROCK;
+	else if (STRINGS_ARE_EQUAL(player_move, "PAPER"))
+		return PAPER;
+	else if (STRINGS_ARE_EQUAL(player_move, "SCISSORS"))
+		return SCISSORS;
+	else if (STRINGS_ARE_EQUAL(player_move, "LIZARD"))
+		return LIZARD;
+	else if (STRINGS_ARE_EQUAL(player_move, "SPOCK"))
+		return SPOCK;
+	else
+	{
+		printf("Wrong input, exiting.\n");
+		return (-1);
+	}
+}
+
 //Main thread that inisilatize all the sockets, programs and opens the send, recive and API threads
 int MainClient(char* server_ip, int port_number, char* username)
 {
 	int exit_code;
 	SOCKADDR_IN client_service;
-	HANDLE hThread[2];
+	HANDLE hThread[3];
 	WSADATA wsaData; 
 	int startup_result;
 
@@ -476,7 +512,7 @@ int MainClient(char* server_ip, int port_number, char* username)
 	}
 
 	//--> Creating message queue
-	msg_queue = msg_queue_creator();
+	msg_queue = CreateMessageQueue();
 	if (msg_queue == NULL) {
 		printf("Error creating msg_queue at MainClient function");
 		exit(0x555);
@@ -534,43 +570,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 		return 0;
 	else // The programm got an error
 		return 0x555;
-}
-
-int SendClientRequestMessage(char* username)
-{
-	char* message_name = "CLIENT_REQUEST";
-	int message_length;
-	char* message_string;
-	
-	// Build message string
-	message_length = strlen(message_name) + 1 + strlen(username) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s:%s\n", message_name, username);
-
-	// Send the message
-	EnqueueMsg(msg_queue, message_string);
-}
-
-int SendClientCPUMessage()
-{
-	char* message_name = "CLIENT_CPU";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	// Send the message
-	EnqueueMsg(msg_queue, message_string);
-}
-
-void playMoveMenuMessage()
-{
-	printf("Choose a move from the list: Rock, Papar, Scissors, Lizard or Spock:\n");
 }
 
 //The function gets the raw string from user and the type of message to send to server: username/play/message, and returns the formated message to send to the server
@@ -666,153 +665,6 @@ int MessageType(char *input) {
 		type = 2;
 
 	return type;
-}
-
-//The function allocate the msg_queue and creates all mutexs and shemaphors
-MsgQueue *msg_queue_creator() {
-	DWORD last_error;
-	MsgQueue *temp = NULL;
-
-	temp = (struct MsgQueue*)malloc(sizeof(struct MsgQueue)); // Malloc the msg_queue
-	if (temp == NULL) {
-		printf("Error allocating msg_queue at msg_queue_creator function\n");
-		exit(-1);
-	}
-
-	temp->head = NULL;
-
-	temp->access_mutex = CreateMutex(
-		NULL,	/* default security attributes */
-		FALSE,	/* initially not owned */
-		NULL);	/* unnamed mutex */
-	if (NULL == temp->access_mutex)
-	{
-		printf("Error when creating lmsg_queue mutexat msg_queue_creator function\n", GetLastError());
-		exit(-1);
-	}
-
-	temp->msgs_count_semaphore = CreateSemaphore(
-		NULL,	/* Default security attributes */
-		0,		/* Initial Count - all slots are empty */
-		30,		/* Maximum Count */
-		NULL); /* un-named */
-	if (temp->msgs_count_semaphore == NULL) {
-		printf("Error when creating msgs_count semaphore: %d at msg_queue_creator function\n", GetLastError());
-		exit(-1);
-	}
-
-	temp->queue_empty_event = CreateEvent(
-		NULL, /* default security attributes */
-		TRUE,       /* manual-reset event */
-		TRUE,      /* initial state is non-signaled */
-		NULL);         /* name */
-	/* Check if succeeded and handle errors */
-
-	last_error = GetLastError();
-	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
-	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
-
-	temp->stop_event = CreateEvent(
-		NULL, /* default security attributes */
-		TRUE,       /* manual-reset event */
-		FALSE,      /* initial state is non-signaled */
-		NULL);         /* name */
-	/* Check if succeeded and handle errors */
-
-	last_error = GetLastError();
-	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
-	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
-	return temp;
-}
-
-//The function gets pointer to message queue and a message string and put it in the buffer
-void EnqueueMsg(MsgQueue *msg_queue, char *msg)
-{
-	MsgNode *node, *cur;
-
-	if (!msg_queue) {
-		printf("Error at EnqueueMsg function\n");
-		return(QUEUE_ERROR);
-	}
-
-	node = (MsgNode*)malloc(sizeof(MsgNode));
-	if (!node) {
-		printf("Malloc error at EnqueueMsg function\n");
-		exit(QUEUE_ERROR);
-	}
-	node->next = NULL;
-	node->data = msg;
-
-	if (WAIT_OBJECT_0 != WaitForSingleObject(msg_queue->access_mutex, INFINITE)) {
-		printf("WaitForSingleObject error at EnqueueMsg function\n");
-		return(QUEUE_ERROR);
-	}
-	if (msg_queue->head == NULL)
-	{
-		msg_queue->head = node;
-	}
-	else {
-		cur = msg_queue->head;
-		while (cur->next != NULL)
-			cur = cur->next;
-		cur->next = node;
-	}
-
-	if (!ReleaseSemaphore(msg_queue->msgs_count_semaphore, 1, NULL)) {
-		printf("ReleaseSemaphore failed (%ld) at EnqueueMsg function\n", GetLastError());
-		return(QUEUE_ERROR);
-	}
-	if (!ReleaseMutex(msg_queue->access_mutex)) {
-		printf("ReleaseMutex failed (%ld) at EnqueueMsg function\n", GetLastError());
-		return(QUEUE_ERROR);
-	}
-
-	if (!ResetEvent(msg_queue->queue_empty_event)) {
-		printf("ResetEvent failed (%ld) at EnqueueMsg function\n", GetLastError());
-		return(QUEUE_ERROR);
-	}
-}
-
-//The function gets pointer to message and returns a message string from the buffer
-char *DequeueMsg(MsgQueue *msg_queue)
-{
-	char *new_msg = NULL;
-	MsgNode *temp_head;
-	DWORD ret;
-	HANDLE wait_for[2];
-
-	wait_for[0] = msg_queue->stop_event;
-	wait_for[1] = msg_queue->msgs_count_semaphore;
-
-	/* checking if queue is empty */
-	ret = WaitForSingleObject(msg_queue->msgs_count_semaphore, INFINITE);
-	if (ret == WAIT_TIMEOUT)
-	{
-		SetEvent(msg_queue->queue_empty_event);
-		ret = WaitForMultipleObjects(2, wait_for, FALSE, INFINITE);
-		if (ret == WAIT_OBJECT_0) {
-			return(QUEUE_ERROR);
-		}
-		if (ret != WAIT_OBJECT_0 + 1) {
-			return(QUEUE_ERROR);
-		}
-	}
-	else if (ret != WAIT_OBJECT_0) {
-		return;
-	}
-
-	if (WAIT_OBJECT_0 != WaitForSingleObject(msg_queue->access_mutex, INFINITE))
-		return GetLastError();
-
-	temp_head = msg_queue->head;
-	msg_queue->head = msg_queue->head->next;
-	if (!ReleaseMutex(msg_queue->access_mutex))
-		return GetLastError();
-
-	new_msg = temp_head->data;
-	free(temp_head);
-
-	return new_msg;
 }
 
 //The function terminats all threads. For type "clean" -> termination with code 0, and returns 0. For type "dirty" -> termination with code 0x555, and returns 0x555.

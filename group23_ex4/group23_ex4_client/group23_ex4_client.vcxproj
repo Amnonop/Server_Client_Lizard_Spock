@@ -120,14 +120,18 @@
   <ItemGroup>
     <ClCompile Include="..\Shared\StringTools.c" />
     <ClCompile Include="client.c" />
+    <ClCompile Include="ClientMessages.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="MessageQueue.c" />
     <ClCompile Include="socketSendReceive.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\ClientSrvCommons.h" />
     <ClInclude Include="..\Shared\StringTools.h" />
     <ClInclude Include="client.h" />
+    <ClInclude Include="ClientMessages.h" />
     <ClInclude Include="Commons.h" />
+    <ClInclude Include="MessageQueue.h" />
     <ClInclude Include="others.h" />
     <ClInclude Include="socketS.h" />
   </ItemGroup>
