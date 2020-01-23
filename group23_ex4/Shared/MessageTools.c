@@ -1,63 +1,37 @@
 #include <string.h>
 #include <stdio.h>
 #include "MessageTools.h"
+#include "../Shared/StringTools.h"
 
-param_node_t* AddNode(param_node_t* head, char* param_value);
-param_node_t* CreateNode(char* param_value);
-
-
+param_node_t* AddParameter(param_node_t* head, const char* param_value, int value_length);
+param_node_t* CreateParameter(const char* param_value, int value_length);
 
 //Function that gets the raw message and break it into the Message struct without :/;
-int GetMessageStruct(message_t *message, char *raw_string)
+int GetMessageStruct(message_t *message, const char *raw_string)
 {
 	int exit_code = 0;
 	const char* message_type_delim = ":";
 	const char* param_delim = ";";
+	char* raw_message_copy = NULL;
 	char* token;
 	char* next_token;
 	int message_type_length;
-	char* end;
-	int end_index;
-	int i = 0;
-	int message_type_index = -1;
-	int lase_param_index = -1;
-
-	char* param_value;
-	int param_start_index;
-	int param_end_index;
+	char* termination_char;
 	int param_length;
 
-	char* param_delim_loc;
-	int param_delim_index;
-
-	end = strchr(raw_string, '\n');
-	end_index = end - raw_string;
+	exit_code = CopyString(raw_string, &raw_message_copy);
 
 	// Initialize param linked list
 	message->parameters = NULL;
 
-	while (raw_string[i] != '\n')
-	{
-		if (raw_string[i] == ':')
-		{
-			// Message type
-			message_type_index = i;
-		}
-	}
-
-	// Check if the message contains parameters
-	if (message_type_index != -1)
-	{
-		// Find the first occurence of ';'
-		param_delim_loc = strchr(raw_string, ';');
-		if (param_delim_loc != NULL)
-		{
-
-		}
-	}
-
-	token = strtok_s(raw_string, message_type_delim, &next_token);
-	message_type_length = strlen(token) + 1;
+	token = strtok_s(raw_message_copy, message_type_delim, &next_token);
+	
+	// Check if the message has parameters
+	if (strlen(token) == strlen(raw_message_copy))
+		message_type_length = strlen(token); // Copy without '\n'
+	else
+		message_type_length = strlen(token) + 1;
+	
 	message->message_type = (char*)malloc(sizeof(char)*message_type_length);
 	strcpy_s(message->message_type, message_type_length, token);
 
@@ -66,7 +40,15 @@ int GetMessageStruct(message_t *message, char *raw_string)
 	{
 		// Add a new parameter node
 		// TODO: Handle the '\n' termination -> remove from the last parameter
-		message->parameters = AddNode(message->parameters, token);
+		termination_char = strchr(token, '\n');
+
+		// Check if this is the last parameter
+		if (termination_char != NULL)
+			param_length = strlen(token);
+		else
+			param_length = strlen(token) + 1;
+
+		message->parameters = AddParameter(message->parameters, token, param_length);
 		if (message->parameters == NULL)
 		{
 			// TODO: Allocation failed
@@ -78,12 +60,12 @@ int GetMessageStruct(message_t *message, char *raw_string)
 	return exit_code;
 }
 
-param_node_t* AddNode(param_node_t* head, char* param_value)
+param_node_t* AddParameter(param_node_t* head, const char* param_value, int value_length)
 {
 	param_node_t* tail;
 	param_node_t* new_node;
 
-	new_node = CreateNode(param_value);
+	new_node = CreateParameter(param_value, value_length);
 	if (new_node == NULL)
 		return NULL;
 
@@ -99,14 +81,11 @@ param_node_t* AddNode(param_node_t* head, char* param_value)
 	return head;
 }
 
-param_node_t* CreateNode(char* param_value)
+param_node_t* CreateParameter(const char* param_value, int value_length)
 {
-	int value_length;
-
 	param_node_t* new_node = (param_node_t*)malloc(sizeof(param_node_t));
 	if (new_node != NULL)
 	{
-		value_length = strlen(param_value) + 1;
 		new_node->param_value = (char*)malloc(sizeof(char)*value_length);
 		strcpy_s(new_node->param_value, value_length, param_value);
 
