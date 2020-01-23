@@ -30,9 +30,10 @@ CLIENT_STATE client_state = FIRST_CONNECTION;
 int HandleClientRequest(char* username, SOCKET socket);
 int GetMainMenuMessage(SOCKET socket);
 int PrintMainMenu();
-int PlayMove();
+int Play();
 int ShowPlayMoveMenuMessage();
 MOVE_TYPE ParsePlayerMove(char* player_move);
+int GetPlayerMoveRequestMessage();
 
 BOOL StringsEqual(const char* string_1, const char* string_2)
 {
@@ -274,7 +275,11 @@ static DWORD ApplicationThread(LPVOID lpParam)
 		{
 			case CLIENT_CPU:
 				client_state = WAITING_TO_START_GAME;
-				SendClientCPUMessage(msg_queue);
+				exit_code = SendClientCPUMessage(msg_queue);
+				if (exit_code != MSG_SUCCESS)
+					return exit_code;
+
+				exit_code = Play();
 			break;
 			default:
 				break;
@@ -444,11 +449,15 @@ int GetMainMenuMessage(SOCKET socket)
 	return exit_code;
 }
 
-int PlayMove()
+int Play()
 {
 	int exit_code;
 	char* user_move = NULL;
 	MOVE_TYPE player_move;
+
+	exit_code = GetPlayerMoveRequestMessage();
+	if (exit_code != CLIENT_SUCCESS)
+		return exit_code;
 
 	ShowPlayMoveMenuMessage();
 	scanf_s("%s", user_move);
@@ -466,6 +475,35 @@ int PlayMove()
 	// TODO: Wait SERVER_GAME_OVER_MENU
 
 	// TODO: Handle client GAME_OVER choice
+}
+
+int GetPlayerMoveRequestMessage()
+{
+	int exit_code;
+	message_t* message = NULL;
+
+	exit_code = ReceiveMessage(socket, &message);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+		{
+			free(message);
+			return CLIENT_RECEIVE_MSG_FAILED;
+		}
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_PLAYER_MOVE_REQUEST"))
+	{
+		exit_code = CLIENT_SUCCESS;
+	}
+	else
+	{
+		printf("Expected to get SERVER_PLAYER_MOVE_REQUEST but got %s instead.\n", message->message_type);
+		exit_code = CLIENT_UNEXPECTED_MESSAGE;
+	}
+
+	free(message);
+	return exit_code;
 }
 
 int ShowPlayMoveMenuMessage()
