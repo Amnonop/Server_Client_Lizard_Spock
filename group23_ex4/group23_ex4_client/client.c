@@ -11,6 +11,7 @@
 #include "Commons.h"
 #include "MessageQueue.h"
 #include "ClientMessages.h"
+#include "../Shared/ClientSrvCommons.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 
@@ -26,6 +27,9 @@ message_queue_t* msg_queue = NULL; // pointer to send message buffer
 CLIENT_STATE client_state = FIRST_CONNECTION;
 
 int PrintMainMenu();
+int PlayMove();
+int ShowPlayMoveMenuMessage();
+MOVE_TYPE ParsePlayerMove(char* player_move);
 
 BOOL StringsEqual(const char* string_1, const char* string_2)
 {
@@ -302,26 +306,6 @@ static DWORD SendDataThread(void)
 	}
 }
 
-
-int computePlayerMove(char* player_move)
-{
-	if (STRINGS_ARE_EQUAL(player_move, "ROCK"))
-		return 0;
-	else if (STRINGS_ARE_EQUAL(player_move, "PAPER"))
-		return 1;
-	else if (STRINGS_ARE_EQUAL(player_move, "SCISSORS"))
-		return 2;
-	else if (STRINGS_ARE_EQUAL(player_move, "LIZARD"))
-		return 3;
-	else if (STRINGS_ARE_EQUAL(player_move, "SPOCK"))
-		return 4;
-	else
-	{
-		printf("Wrong input, exiting.\n");
-		return (-1);
-	}
-}
-
 //User application Thread (managing all user inputs to the client)
 static DWORD ApplicationThread(LPVOID lpParam)
 {
@@ -332,7 +316,6 @@ static DWORD ApplicationThread(LPVOID lpParam)
 	DWORD wait_code;
 	BOOL release_res;
 	int user_choice = -1;
-	char *user_move = NULL;
 
 	thread_params = (client_thread_params_t*)lpParam;
 
@@ -357,7 +340,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				scanf_s("%d", &user_choice);
 				switch (user_choice)
 				{
-					case PLAY_VS_COMPUTER:
+					case CLIENT_CPU:
 						client_state = WAITING_TO_START_GAME;
 						SendClientCPUMessage(msg_queue);
 						break;
@@ -366,9 +349,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				}
 				break;
 			case PLAY_MOVE:
-				playMoveMenuMessage();
-				scanf_s("%s", user_move);
-				int player_move = computePlayerMove(user_move);
+				PlayMove();
 				break;
 			default:
 				break;
@@ -430,6 +411,54 @@ static DWORD ApplicationThread(LPVOID lpParam)
 		//free(send_message);
 	}
 	return 0;
+}
+
+int PlayMove()
+{
+	int exit_code;
+	char* user_move = NULL;
+	MOVE_TYPE player_move;
+
+	ShowPlayMoveMenuMessage();
+	scanf_s("%s", user_move);
+	player_move = ParsePlayerMove(user_move);
+
+	// TODO: Send CLIENT_PLAYER_MOVE message
+	exit_code = SendPlayerMoveMessage(player_move, msg_queue);
+	if (exit_code != QUEUE_SUCCESS)
+	{
+		return CLIENT_SEND_MSG_FAILED;
+	}
+
+	// TODO: Wait SERVER_GAME_RESULTS message
+
+	// TODO: Wait SERVER_GAME_OVER_MENU
+
+	// TODO: Handle client GAME_OVER choice
+}
+
+int ShowPlayMoveMenuMessage()
+{
+	printf("Choose a move from the list: Rock, Papar, Scissors, Lizard or Spock:\n");
+}
+
+MOVE_TYPE ParsePlayerMove(char* player_move)
+{
+	if (STRINGS_ARE_EQUAL(player_move, "ROCK"))
+		return ROCK;
+	else if (STRINGS_ARE_EQUAL(player_move, "PAPER"))
+		return PAPER;
+	else if (STRINGS_ARE_EQUAL(player_move, "SCISSORS"))
+		return SCISSORS;
+	else if (STRINGS_ARE_EQUAL(player_move, "LIZARD"))
+		return LIZARD;
+	else if (STRINGS_ARE_EQUAL(player_move, "SPOCK"))
+		return SPOCK;
+	else
+	{
+		printf("Wrong input, exiting.\n");
+		return (-1);
+	}
 }
 
 //Main thread that inisilatize all the sockets, programs and opens the send, recive and API threads
@@ -541,11 +570,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 		return 0;
 	else // The programm got an error
 		return 0x555;
-}
-
-int playMoveMenuMessage()
-{
-	printf("Choose a move from the list: Rock, Papar, Scissors, Lizard or Spock:\n");
 }
 
 //The function gets the raw string from user and the type of message to send to server: username/play/message, and returns the formated message to send to the server

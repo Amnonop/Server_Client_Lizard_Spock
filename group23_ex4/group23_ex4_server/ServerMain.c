@@ -402,7 +402,7 @@ int Play(client_info_t* client)
 	MOVE_TYPE computer_move;
 	MOVE_TYPE player_move;
 	int winner;
-	CLIENT_MENU_OPTIONS client_choice = CLIENT_CPU;
+	MAIN_MENU_OPTIONS client_choice = CLIENT_CPU;
 
 	while (!end_game)
 	{
