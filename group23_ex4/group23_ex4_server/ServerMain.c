@@ -388,7 +388,7 @@ int HandlePlayer(client_info_t* client)
 
 	if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
 	{
-		exit_code = Play(client->socket);
+		exit_code = Play(client);
 	}
 
 	free(message);

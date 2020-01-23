@@ -9,6 +9,8 @@
 #include "others.h"
 #include "SocketS.h"
 #include "Commons.h"
+#include "MessageQueue.h"
+#include "ClientMessages.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 
@@ -19,7 +21,7 @@ static my_username[MAX_LINE];
 static HANDLE logfile_mutex; //log file mutex
 HANDLE hThread[3]; // main threads
 int game_started = 0, exit_signal = 0, user_accepted = 0, play_accepted = 0;
-MsgQueue *msg_queue = NULL; // pointer to send message buffer
+message_queue_t* msg_queue = NULL; // pointer to send message buffer
 
 CLIENT_STATE client_state = FIRST_CONNECTION;
 
@@ -340,7 +342,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 			case FIRST_CONNECTION:
 				// Send CLIENT_REQUEST message with username to server
 				client_state = WAITING_SERVER_APPROVAL;
-				SendClientRequestMessage(thread_params->username);
+				SendClientRequestMessage(thread_params->username, msg_queue);
 				break;
 			case SERVER_APPROVED:
 				//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
@@ -354,14 +356,14 @@ static DWORD ApplicationThread(LPVOID lpParam)
 						client_state = WAITING_TO_START_GAME;
 						SendClientCPUMessage();
 						break;
-					case PLAY_MOVE:
-						playMoveMenuMessage();
-						scanf_s("%s", user_move);
-						int player_move = computePlayerMove(user_move);
-						break;
 					default:
 						break;
 				}
+				break;
+			case PLAY_MOVE:
+				playMoveMenuMessage();
+				scanf_s("%s", user_move);
+				int player_move = computePlayerMove(user_move);
 				break;
 			default:
 				break;
@@ -476,7 +478,7 @@ int MainClient(char* server_ip, int port_number, char* username)
 	}
 
 	//--> Creating message queue
-	msg_queue = msg_queue_creator();
+	msg_queue = CreateMessageQueue();
 	if (msg_queue == NULL) {
 		printf("Error creating msg_queue at MainClient function");
 		exit(0x555);
@@ -534,22 +536,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 		return 0;
 	else // The programm got an error
 		return 0x555;
-}
-
-int SendClientRequestMessage(char* username)
-{
-	char* message_name = "CLIENT_REQUEST";
-	int message_length;
-	char* message_string;
-	
-	// Build message string
-	message_length = strlen(message_name) + 1 + strlen(username) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s:%s\n", message_name, username);
-
-	// Send the message
-	EnqueueMsg(msg_queue, message_string);
 }
 
 int SendClientCPUMessage()
@@ -666,153 +652,6 @@ int MessageType(char *input) {
 		type = 2;
 
 	return type;
-}
-
-//The function allocate the msg_queue and creates all mutexs and shemaphors
-MsgQueue *msg_queue_creator() {
-	DWORD last_error;
-	MsgQueue *temp = NULL;
-
-	temp = (struct MsgQueue*)malloc(sizeof(struct MsgQueue)); // Malloc the msg_queue
-	if (temp == NULL) {
-		printf("Error allocating msg_queue at msg_queue_creator function\n");
-		exit(-1);
-	}
-
-	temp->head = NULL;
-
-	temp->access_mutex = CreateMutex(
-		NULL,	/* default security attributes */
-		FALSE,	/* initially not owned */
-		NULL);	/* unnamed mutex */
-	if (NULL == temp->access_mutex)
-	{
-		printf("Error when creating lmsg_queue mutexat msg_queue_creator function\n", GetLastError());
-		exit(-1);
-	}
-
-	temp->msgs_count_semaphore = CreateSemaphore(
-		NULL,	/* Default security attributes */
-		0,		/* Initial Count - all slots are empty */
-		30,		/* Maximum Count */
-		NULL); /* un-named */
-	if (temp->msgs_count_semaphore == NULL) {
-		printf("Error when creating msgs_count semaphore: %d at msg_queue_creator function\n", GetLastError());
-		exit(-1);
-	}
-
-	temp->queue_empty_event = CreateEvent(
-		NULL, /* default security attributes */
-		TRUE,       /* manual-reset event */
-		TRUE,      /* initial state is non-signaled */
-		NULL);         /* name */
-	/* Check if succeeded and handle errors */
-
-	last_error = GetLastError();
-	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
-	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
-
-	temp->stop_event = CreateEvent(
-		NULL, /* default security attributes */
-		TRUE,       /* manual-reset event */
-		FALSE,      /* initial state is non-signaled */
-		NULL);         /* name */
-	/* Check if succeeded and handle errors */
-
-	last_error = GetLastError();
-	/* If last_error is ERROR_SUCCESS, then it means that the event was created.
-	   If last_error is ERROR_ALREADY_EXISTS, then it means that the event already exists */
-	return temp;
-}
-
-//The function gets pointer to message queue and a message string and put it in the buffer
-void EnqueueMsg(MsgQueue *msg_queue, char *msg)
-{
-	MsgNode *node, *cur;
-
-	if (!msg_queue) {
-		printf("Error at EnqueueMsg function\n");
-		return(QUEUE_ERROR);
-	}
-
-	node = (MsgNode*)malloc(sizeof(MsgNode));
-	if (!node) {
-		printf("Malloc error at EnqueueMsg function\n");
-		exit(QUEUE_ERROR);
-	}
-	node->next = NULL;
-	node->data = msg;
-
-	if (WAIT_OBJECT_0 != WaitForSingleObject(msg_queue->access_mutex, INFINITE)) {
-		printf("WaitForSingleObject error at EnqueueMsg function\n");
-		return(QUEUE_ERROR);
-	}
-	if (msg_queue->head == NULL)
-	{
-		msg_queue->head = node;
-	}
-	else {
-		cur = msg_queue->head;
-		while (cur->next != NULL)
-			cur = cur->next;
-		cur->next = node;
-	}
-
-	if (!ReleaseSemaphore(msg_queue->msgs_count_semaphore, 1, NULL)) {
-		printf("ReleaseSemaphore failed (%ld) at EnqueueMsg function\n", GetLastError());
-		return(QUEUE_ERROR);
-	}
-	if (!ReleaseMutex(msg_queue->access_mutex)) {
-		printf("ReleaseMutex failed (%ld) at EnqueueMsg function\n", GetLastError());
-		return(QUEUE_ERROR);
-	}
-
-	if (!ResetEvent(msg_queue->queue_empty_event)) {
-		printf("ResetEvent failed (%ld) at EnqueueMsg function\n", GetLastError());
-		return(QUEUE_ERROR);
-	}
-}
-
-//The function gets pointer to message and returns a message string from the buffer
-char *DequeueMsg(MsgQueue *msg_queue)
-{
-	char *new_msg = NULL;
-	MsgNode *temp_head;
-	DWORD ret;
-	HANDLE wait_for[2];
-
-	wait_for[0] = msg_queue->stop_event;
-	wait_for[1] = msg_queue->msgs_count_semaphore;
-
-	/* checking if queue is empty */
-	ret = WaitForSingleObject(msg_queue->msgs_count_semaphore, INFINITE);
-	if (ret == WAIT_TIMEOUT)
-	{
-		SetEvent(msg_queue->queue_empty_event);
-		ret = WaitForMultipleObjects(2, wait_for, FALSE, INFINITE);
-		if (ret == WAIT_OBJECT_0) {
-			return(QUEUE_ERROR);
-		}
-		if (ret != WAIT_OBJECT_0 + 1) {
-			return(QUEUE_ERROR);
-		}
-	}
-	else if (ret != WAIT_OBJECT_0) {
-		return;
-	}
-
-	if (WAIT_OBJECT_0 != WaitForSingleObject(msg_queue->access_mutex, INFINITE))
-		return GetLastError();
-
-	temp_head = msg_queue->head;
-	msg_queue->head = msg_queue->head->next;
-	if (!ReleaseMutex(msg_queue->access_mutex))
-		return GetLastError();
-
-	new_msg = temp_head->data;
-	free(temp_head);
-
-	return new_msg;
 }
 
 //The function terminats all threads. For type "clean" -> termination with code 0, and returns 0. For type "dirty" -> termination with code 0x555, and returns 0x555.

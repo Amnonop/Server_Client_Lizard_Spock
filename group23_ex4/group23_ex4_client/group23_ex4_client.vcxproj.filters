@@ -27,6 +27,12 @@
     <ClCompile Include="..\Shared\StringTools.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ClientMessages.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MessageQueue.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client.h">
@@ -45,6 +51,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\ClientSrvCommons.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientMessages.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MessageQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
