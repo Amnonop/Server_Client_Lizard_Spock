@@ -1,6 +1,13 @@
 #ifndef MESSAGE_TOOLS_H
 #define MESSAGE_TOOLS_H
 
+typedef enum
+{
+	MSG_SUCCESS,
+	MSG_MEM_ALLOC_FAILED,
+	MSG_TRANS_FAILED
+} MESSAGE_CODES;
+
 typedef struct param_node {
 	char *param_value;
 	struct param_node_t *next;

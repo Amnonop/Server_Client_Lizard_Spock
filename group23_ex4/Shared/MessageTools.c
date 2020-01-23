@@ -1,11 +1,45 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <WinSock2.h>
 #include "MessageTools.h"
 #include "../Shared/StringTools.h"
+#include "../Shared/socketS.h"
 
 param_node_t* AddParameter(param_node_t* head, const char* param_value, int value_length);
 param_node_t* CreateParameter(const char* param_value, int value_length);
+
+int ReceiveMessage(SOCKET client_socket, message_t** message)
+{
+	TransferResult_t receive_result;
+	char* accepted_string = NULL;
+
+	*message = (message_t*)malloc(sizeof(message_t));
+	if (*message == NULL)
+	{
+		printf("Failed to allocate memory.\n");
+		return MSG_MEM_ALLOC_FAILED;
+	}
+
+	// Waiting for CLIENT_REQUEST message
+	receive_result = ReceiveString(&accepted_string, client_socket);
+	if (receive_result == TRNS_FAILED)
+	{
+		printf("Player disconnected. Ending communication.\n");
+		return MSG_TRANS_FAILED;
+	}
+	else if (receive_result == TRNS_DISCONNECTED)
+	{
+		printf("Player disconnected. Ending communication.\n");
+		return MSG_TRANS_FAILED;
+	}
+
+	printf("Received message: %s\n", accepted_string);
+	GetMessageStruct(*message, accepted_string);
+
+	free(accepted_string);
+	return MSG_SUCCESS;
+}
 
 //Function that gets the raw message and break it into the Message struct without :/;
 int GetMessageStruct(message_t *message, const char *raw_string)

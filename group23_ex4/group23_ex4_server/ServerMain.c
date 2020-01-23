@@ -6,9 +6,9 @@
 #include "ServerMain.h"
 #include "Commons.h"
 #include "../Shared/MessageTools.h"
-#include "socketS.h"
 #include "../Shared/ClientSrvCommons.h"
 #include "ServerMessages.h"
+#include "../Shared/socketS.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 #define NUM_OF_WORKER_THREADS 2

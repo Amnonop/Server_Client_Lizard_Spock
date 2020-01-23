@@ -27,9 +27,6 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="socketSendReceive.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\StringTools.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,15 +39,15 @@
     <ClCompile Include="..\Shared\MessageTools.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\socketSendReceive.c">
+      <Filter>Shared Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="others.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="socketS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Commons.h">
@@ -69,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\MessageTools.h">
+      <Filter>Shared Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\socketS.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
   </ItemGroup>

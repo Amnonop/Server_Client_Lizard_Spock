@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Shared Header Files">
+      <UniqueIdentifier>{6921017d-72a2-4c10-b8b2-e7c197f7a525}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared Source Files">
+      <UniqueIdentifier>{e94cf5f2-bdf5-4459-8e69-fc23f3e2097b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -21,13 +27,7 @@
     <ClCompile Include="server.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="socketSendReceive.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ServerMain.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Shared\MessageTools.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ServerMessages.c">
@@ -36,12 +36,15 @@
     <ClCompile Include="..\Shared\StringTools.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\MessageTools.c">
+      <Filter>Shared Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Shared\socketSendReceive.c">
+      <Filter>Shared Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="server.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="socketS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Commons.h">
@@ -50,14 +53,17 @@
     <ClInclude Include="ServerMain.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Shared\MessageTools.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ServerMessages.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\StringTools.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\socketS.h">
+      <Filter>Shared Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Shared\MessageTools.h">
+      <Filter>Shared Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

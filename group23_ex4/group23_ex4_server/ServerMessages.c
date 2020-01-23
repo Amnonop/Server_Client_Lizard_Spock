@@ -3,7 +3,7 @@
 #include "Commons.h"
 #include "../Shared/ClientSrvCommons.h"
 #include "../Shared/MessageTools.h"
-#include "socketS.h"
+#include "../Shared/socketS.h"
 
 int SendMessageWithoutParams(const char* message_type, SOCKET socket);
 
@@ -83,38 +83,6 @@ int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move,
 
 int SendGameOverMenu(SOCKET socket)
 {
-	return SERVER_SUCCESS;
-}
-
-int ReceiveMessage(SOCKET client_socket, message_t** message)
-{
-	TransferResult_t receive_result;
-	char* accepted_string = NULL;
-
-	*message = (message_t*)malloc(sizeof(message_t));
-	if (*message == NULL)
-	{
-		printf("Failed to allocate memory.\n");
-		return SERVER_MEM_ALLOC_FAILED;
-	}
-
-	// Waiting for CLIENT_REQUEST message
-	receive_result = ReceiveString(&accepted_string, client_socket);
-	if (receive_result == TRNS_FAILED)
-	{
-		printf("Player disconnected. Ending communication.\n");
-		return SERVER_TRANS_FAILED;
-	}
-	else if (receive_result == TRNS_DISCONNECTED)
-	{
-		printf("Player disconnected. Ending communication.\n");
-		return SERVER_TRANS_FAILED;
-	}
-
-	printf("Received message: %s\n", accepted_string);
-	GetMessageStruct(*message, accepted_string);
-
-	free(accepted_string);
 	return SERVER_SUCCESS;
 }
 

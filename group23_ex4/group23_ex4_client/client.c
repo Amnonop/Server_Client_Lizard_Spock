@@ -7,7 +7,7 @@
 #include <Windows.h>
 #include "client.h"
 #include "others.h"
-#include "SocketS.h"
+#include "../Shared/socketS.h"
 #include "Commons.h"
 #include "MessageQueue.h"
 #include "ClientMessages.h"
@@ -247,8 +247,12 @@ static DWORD ApplicationThread(LPVOID lpParam)
 	DWORD wait_code;
 	BOOL release_res;
 	int user_choice = -1;
+	int receive_result;
 
 	thread_params = (client_thread_params_t*)lpParam;
+
+	// Inital handshake
+	//receive_result = 
 
 	while (1)
 	{
@@ -397,7 +401,7 @@ int MainClient(char* server_ip, int port_number, char* username)
 {
 	int exit_code;
 	SOCKADDR_IN client_service;
-	HANDLE hThread[3];
+	HANDLE hThread[2];
 	WSADATA wsaData; 
 	int startup_result;
 
@@ -458,15 +462,15 @@ int MainClient(char* server_ip, int port_number, char* username)
 		0,
 		NULL
 	);
-	hThread[1] = CreateThread(
+	/*hThread[1] = CreateThread(
 		NULL,
 		0,
 		(LPTHREAD_START_ROUTINE)RecvDataThread,
 		(LPVOID)&thread_params,
 		0,
 		NULL
-	);
-	hThread[2] = CreateThread(
+	);*/
+	hThread[1] = CreateThread(
 		NULL,
 		0,
 		(LPTHREAD_START_ROUTINE)ApplicationThread,
@@ -475,7 +479,7 @@ int MainClient(char* server_ip, int port_number, char* username)
 		NULL
 	);
 
-	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
+	WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
 
 	GetExitCodeThread(hThread[0], &exit_code); // Getting the error code from threads
 
