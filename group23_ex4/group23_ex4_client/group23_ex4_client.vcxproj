@@ -118,6 +118,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\MessageTools.c" />
     <ClCompile Include="..\Shared\StringTools.c" />
     <ClCompile Include="client.c" />
     <ClCompile Include="ClientMessages.c" />
@@ -127,6 +128,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\ClientSrvCommons.h" />
+    <ClInclude Include="..\Shared\MessageTools.h" />
     <ClInclude Include="..\Shared\StringTools.h" />
     <ClInclude Include="client.h" />
     <ClInclude Include="ClientMessages.h" />
