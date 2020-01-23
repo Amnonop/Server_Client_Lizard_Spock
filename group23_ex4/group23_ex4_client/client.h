@@ -28,6 +28,7 @@ typedef struct client_thread_params
 	char* username;
 	char* server_ip;
 	int server_port;
+	SOCKET socket;
 } client_thread_params_t;
 
 void PrintBoard(int board[][BOARD_WIDTH]);

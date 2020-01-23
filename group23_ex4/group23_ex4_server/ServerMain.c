@@ -336,7 +336,7 @@ int AcceptPlayer(client_info_t* client)
 	int receive_result;
 
 	receive_result = ReceiveMessage(client->socket, &message);
-	if (receive_result != SERVER_SUCCESS)
+	if (receive_result != MSG_SUCCESS)
 	{
 		if (message != NULL)
 			free(message);

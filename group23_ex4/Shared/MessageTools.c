@@ -9,7 +9,7 @@
 param_node_t* AddParameter(param_node_t* head, const char* param_value, int value_length);
 param_node_t* CreateParameter(const char* param_value, int value_length);
 
-int ReceiveMessage(SOCKET client_socket, message_t** message)
+int ReceiveMessage(SOCKET socket, message_t** message)
 {
 	TransferResult_t receive_result;
 	char* accepted_string = NULL;
@@ -22,7 +22,7 @@ int ReceiveMessage(SOCKET client_socket, message_t** message)
 	}
 
 	// Waiting for CLIENT_REQUEST message
-	receive_result = ReceiveString(&accepted_string, client_socket);
+	receive_result = ReceiveString(&accepted_string, socket);
 	if (receive_result == TRNS_FAILED)
 	{
 		printf("Player disconnected. Ending communication.\n");

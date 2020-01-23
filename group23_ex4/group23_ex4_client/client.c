@@ -27,6 +27,8 @@ message_queue_t* msg_queue = NULL; // pointer to send message buffer
 
 CLIENT_STATE client_state = FIRST_CONNECTION;
 
+int HandleClientRequest(char* username, SOCKET socket);
+int GetMainMenuMessage(SOCKET socket)
 int PrintMainMenu();
 int PlayMove();
 int ShowPlayMoveMenuMessage();
@@ -251,44 +253,69 @@ static DWORD ApplicationThread(LPVOID lpParam)
 
 	thread_params = (client_thread_params_t*)lpParam;
 
-	// Inital handshake
-	//receive_result = 
-
-	while (1)
+	exit_code = HandleClientRequest(thread_params->username, thread_params->socket);
+	if (exit_code != CLIENT_SERVER_APPROVED)
 	{
-		switch (client_state)
+		return exit_code;
+	}
+
+	while (TRUE)
+	{
+		// Now we need to wait for SERVER_MAIN_MENU message
+		exit_code = GetMainMenuMessage(thread_params->socket);
+		if (exit_code != CLIENT_SUCCESS)
 		{
-			case FIRST_CONNECTION:
-				// Send CLIENT_REQUEST message with username to server
-				client_state = WAITING_SERVER_APPROVAL;
-				exit_code = SendClientRequestMessage(thread_params->username, msg_queue);
-				if (exit_code != QUEUE_SUCCESS)
-				{
-					return CLIENT_SEND_MSG_FAILED;
-				}
-				break;
-			case SERVER_APPROVED:
-				//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
-				break;
-			case MAIN_MENU:
-				PrintMainMenu();
-				scanf_s("%d", &user_choice);
-				switch (user_choice)
-				{
-					case CLIENT_CPU:
-						client_state = WAITING_TO_START_GAME;
-						SendClientCPUMessage(msg_queue);
-						break;
-					default:
-						break;
-				}
-				break;
-			case PLAY_MOVE:
-				PlayMove();
-				break;
+			return exit_code;
+		}
+
+		PrintMainMenu();
+		scanf_s("%d", &user_choice);
+		switch (user_choice)
+		{
+			case CLIENT_CPU:
+				client_state = WAITING_TO_START_GAME;
+				SendClientCPUMessage(msg_queue);
+			break;
 			default:
 				break;
 		}
+	}
+
+	//while (1)
+	//{
+	//	switch (client_state)
+	//	{
+	//		case FIRST_CONNECTION:
+	//			// Send CLIENT_REQUEST message with username to server
+	//			client_state = WAITING_SERVER_APPROVAL;
+	//			exit_code = SendClientRequestMessage(thread_params->username, msg_queue);
+	//			if (exit_code != QUEUE_SUCCESS)
+	//			{
+	//				return CLIENT_SEND_MSG_FAILED;
+	//			}
+	//			break;
+	//		case SERVER_APPROVED:
+	//			//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
+	//			break;
+	//		case MAIN_MENU:
+	//			PrintMainMenu();
+	//			scanf_s("%d", &user_choice);
+	//			switch (user_choice)
+	//			{
+	//				case CLIENT_CPU:
+	//					client_state = WAITING_TO_START_GAME;
+	//					SendClientCPUMessage(msg_queue);
+	//					break;
+	//				default:
+	//					break;
+	//			}
+	//			break;
+	//		case PLAY_MOVE:
+	//			PlayMove();
+	//			break;
+	//		default:
+	//			break;
+	//	}
 		
 		//if ((game_started == 0) && (user_accepted == 0) && (run == 0)) // Username input for user
 		//{
@@ -344,8 +371,77 @@ static DWORD ApplicationThread(LPVOID lpParam)
 		//	}
 		//}
 		//free(send_message);
+	//}
+	return CLIENT_SUCCESS;
+}
+
+int HandleClientRequest(char* username, SOCKET socket)
+{
+	int exit_code;
+	message_t* message = NULL;
+
+	// Inital handshake
+	exit_code = SendClientRequestMessage(username, msg_queue);
+	if (exit_code != QUEUE_SUCCESS)
+	{
+		return CLIENT_SEND_MSG_FAILED;
 	}
-	return 0;
+
+	exit_code = ReceiveMessage(socket, &message);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+		{
+			free(message);
+			return CLIENT_RECEIVE_MSG_FAILED;
+		}
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_DENIED"))
+	{
+		exit_code = CLIENT_SERVER_DENIED;
+	}
+	else if (!STRINGS_ARE_EQUAL(message->message_type, "SERVER_APPROVED"))
+	{
+		printf("Expected to get SERVER_APPROVED or SERVER_DENIED but got %s instead.\n", message->message_type);
+		exit_code = CLIENT_UNEXPECTED_MESSAGE;
+	}
+	else
+	{
+		exit_code = CLIENT_SERVER_APPROVED;
+	}
+
+	free(message);
+	return exit_code;
+}
+
+int GetMainMenuMessage(SOCKET socket)
+{
+	int exit_code;
+	message_t* message = NULL;
+
+	exit_code = ReceiveMessage(socket, &message);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+		{
+			free(message);
+			return CLIENT_RECEIVE_MSG_FAILED;
+		}
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_MAIN_MENU"))
+	{
+		exit_code = CLIENT_SUCCESS;
+	}
+	else
+	{
+		printf("Expected to get SERVER_MAIN_MENU but got %s instead.\n", message->message_type);
+		exit_code = CLIENT_UNEXPECTED_MESSAGE;
+	}
+
+	free(message);
+	return exit_code;
 }
 
 int PlayMove()
@@ -434,6 +530,7 @@ int MainClient(char* server_ip, int port_number, char* username)
 	thread_params.username = username;
 	thread_params.server_ip = server_ip;
 	thread_params.server_port = port_number;
+	thread_params.socket = m_socket;
 
 	//--> Creating mutex for logfile writing
 	logfile_mutex = CreateMutex(
