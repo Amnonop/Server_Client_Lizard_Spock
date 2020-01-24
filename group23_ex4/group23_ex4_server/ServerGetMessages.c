@@ -22,6 +22,12 @@ int GetPlayerMainMenuChoice(SOCKET socket, MAIN_MENU_OPTIONS* user_choice)
 		*user_choice = CLIENT_CPU;
 		exit_code = SERVER_SUCCESS;
 	}
+	else if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_VERSUS"))
+	{
+		*user_choice = CLIENT_VERSUS;
+		exit_code = SERVER_SUCCESS;
+	}
+
 	else if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_DISCONNECT"))
 	{
 		*user_choice = QUIT;

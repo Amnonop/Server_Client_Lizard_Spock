@@ -390,6 +390,10 @@ int PlayerVersusPlaye(client_info_t* client)
 	MOVE_TYPE player_1_move;
 	BOOL curr_client_id = client->client_id;
 	SOCKET other_client_socket = connected_clients[1 - curr_client_id]->socket;
+	int winner;
+	GAME_OVER_MENU_OPTIONS user_0_choice = OPT_REPLAY;
+	GAME_OVER_MENU_OPTIONS user_1_choice = OPT_REPLAY;
+
 	if (connected_clients[1 - client->client_id]->request_to_play == FALSE)
 		return FALSE;
 	else
@@ -416,6 +420,36 @@ int PlayerVersusPlaye(client_info_t* client)
 			{
 				return exit_code;
 			}
+			// Send SERVER_GAME_RESULTS
+			winner = CheckWinner(player_0_move, player_1_move);
+			if (winner == 1)
+				exit_code = SendGameResultsMessage("Server", player_0_move, player_1_move, client->userinfo, client->socket);
+			// TODO: Send player username
+			else
+				exit_code = SendGameResultsMessage("Server", player_0_move, player_1_move, "Server", client->socket);
+			if (exit_code != SERVER_SUCCESS)
+				return exit_code;
+
+			// Wait for client's choice 
+			exit_code = SendGameOverMenu(client->socket);
+			if (exit_code != SERVER_SUCCESS)
+				return exit_code;
+
+			exit_code = GetPlayerGameOverMenuChoice(client->socket, &user_0_choice);
+			if (exit_code != SERVER_SUCCESS)
+			{
+				return exit_code;
+			}
+			if (user_choice != OPT_REPLAY)
+				end_game = TRUE;
+			exit_code = GetPlayerGameOverMenuChoice(other_client_socket, &user_1_choice);
+			if (exit_code != SERVER_SUCCESS)
+			{
+				return exit_code;
+			}
+			if (user_choice != OPT_REPLAY)
+				end_game = TRUE;
+		}
 	}
 
 }
@@ -448,7 +482,7 @@ int HandlePlayer(client_info_t* client)
 				break;
 			case CLIENT_VERSUS:
 				client->request_to_play = TRUE;
-				exit_code = PlayerVersusPlayer(conn, client);
+				exit_code = PlayerVersusPlayer(client);
 				if  (exit_code == FALSE)
 					SendPlayerAloneMessage(client->socket); //'no opponents'
 				break;

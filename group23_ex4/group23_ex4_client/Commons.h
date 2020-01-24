@@ -46,4 +46,11 @@ typedef enum
 	OPT_EXIT = 2
 } SERVER_CONNECT_MENU_OPTIONS;
 
+
+typedef enum
+{
+	CLIENT_REFRESH = 1,
+	CLIENT_MAIN_MENU = 2
+} CLIENT_LEADERBOARD_OPTIONS;
+
 #endif

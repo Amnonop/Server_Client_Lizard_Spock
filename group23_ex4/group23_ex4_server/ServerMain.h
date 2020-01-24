@@ -9,6 +9,7 @@ typedef struct client_info
 {
 	char userinfo[USERNAME_MAX_LENGTH];
 	SOCKET socket;
+	BOOL client_id;
 	BOOL request_to_play ;
 } client_info_t;
 
