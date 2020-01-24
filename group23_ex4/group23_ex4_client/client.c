@@ -244,6 +244,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 	int exit_code;
 	char input[MAX_LINE], *send_message = NULL;
 	int run = 0, type = 0;
+	char* message_name = NULL;
 	client_thread_params_t* thread_params;
 	DWORD wait_code;
 	BOOL release_res;
@@ -273,7 +274,8 @@ static DWORD ApplicationThread(LPVOID lpParam)
 		{
 			case CLIENT_CPU:
 				//client_state = WAITING_TO_START_GAME;
-				exit_code = SendClientCPUMessage(msg_queue);
+				message_name = "CLIENT_CPU";
+				exit_code = SendClientCPUMessage(message_name, msg_queue);
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
 
@@ -298,7 +300,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
 
-				//exit_code = Play(thread_params->socket);
+				exit_code = viewLeaderBoard(thread_params->socket);
 				if (exit_code != CLIENT_SUCCESS)
 					return exit_code;
 				break;
@@ -567,7 +569,7 @@ int Play(SOCKET socket)
 
 		ShowPlayMoveMenuMessage();
 		scanf_s("%s", user_move, (rsize_t)sizeof user_move);
-		player_move = ParsePlayerMove(user_move);
+		player_move = translatePlayerMove(user_move);
 
 		// TODO: Send CLIENT_PLAYER_MOVE message
 		exit_code = SendPlayerMoveMessage(player_move, msg_queue);
@@ -612,6 +614,121 @@ int Play(SOCKET socket)
 			game_over = TRUE;
 		}
 	}
+}
+
+
+viewLeaderBoard(SOCKET socket)
+{
+	int exit_code;
+	char user_move[9];
+	MOVE_TYPE player_move;
+	game_results_t* game_results = NULL;
+	GAME_OVER_MENU_OPTIONS user_choice;
+	BOOL game_over = FALSE;
+
+	while (!game_over)
+	{
+		exit_code = GetLeaderBoardMessage(socket);
+		if (exit_code != CLIENT_SUCCESS)
+			return exit_code;
+
+		user_choice = ShowLeaderBoardMenuMessage();
+		if (user_choice == CLIENT_REFRESH)
+		{
+			exit_code = SendPlayerMoveMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
+		}
+
+		else if (user_choice == CLIENT_MAIN_MENU)
+		{
+			exit_code = SendMainMenuMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
+			game_over = TRUE;
+		}
+
+
+
+
+		// TODO: Send CLIENT_PLAYER_MOVE message
+		exit_code = SendPlayerMoveMessage(player_move, msg_queue);
+		if (exit_code != QUEUE_SUCCESS)
+		{
+			return CLIENT_SEND_MSG_FAILED;
+		}
+
+		// TODO: Wait SERVER_GAME_RESULTS message
+		exit_code = GetGameResultsMessage(socket, &game_results);
+		if (exit_code != CLIENT_SUCCESS)
+		{
+			return exit_code;
+		}
+		ShowGameResults(game_results);
+		FreeGameResults(game_results);
+
+		// TODO: Wait SERVER_GAME_OVER_MENU
+		exit_code = GetGameOverMenuMessage(socket);
+		if (exit_code != CLIENT_SUCCESS)
+		{
+			return exit_code;
+		}
+
+		// TODO: Handle client GAME_OVER choice
+		user_choice = GetGameOverMenuChoice();
+		if (user_choice == OPT_REPLAY)
+		{
+			exit_code = SendClientReplayMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
+		}
+		else
+		{
+			exit_code = SendMainMenuMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
+			game_over = TRUE;
+		}
+	}
+}
+
+
+int GetLeaderBoardMessage(SOCKET socket)
+{
+	int exit_code;
+	message_t* message = NULL;
+
+	printf("Waiting for SERVER_LEADERBOARD.\n");
+	exit_code = ReceiveMessage(socket, &message);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+		{
+			free(message);
+			return CLIENT_RECEIVE_MSG_FAILED;
+		}
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_LEADERBOARD"))
+	{
+		exit_code = CLIENT_SUCCESS;
+	}
+	else
+	{
+		printf("Expected to get SERVER_LEADERBOARD but got %s instead.\n", message->message_type);
+		exit_code = CLIENT_UNEXPECTED_MESSAGE;
+	}
+
+	free(message);
+	return exit_code;
 }
 
 int GetPlayerMoveRequestMessage(SOCKET socket)
@@ -662,6 +779,20 @@ GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice()
 
 	printf("Choose what to do next:\n");
 	printf("1.	Play again\n");
+	printf("2.	Return to the main menu\n");
+
+	scanf_s("%d", &user_choice);
+
+	return user_choice;
+}
+
+
+GAME_OVER_MENU_OPTIONS ShowLeaderBoardMenuMessage()
+{
+	GAME_OVER_MENU_OPTIONS user_choice;
+
+	printf("Choose what to do next:\n");
+	printf("1.	Refresh\n");
 	printf("2.	Return to the main menu\n");
 
 	scanf_s("%d", &user_choice);
