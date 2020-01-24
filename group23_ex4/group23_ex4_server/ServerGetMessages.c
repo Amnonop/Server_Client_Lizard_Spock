@@ -41,7 +41,7 @@ int GetPlayerGameOverMenuChoice(SOCKET client_socket, GAME_OVER_MENU_OPTIONS* us
 	message_t* message = NULL;
 	int receive_result;
 
-	receive_result = ReceiveMessageWithTimeout(socket, &message, TIMEOUT_INFINITE);
+	receive_result = ReceiveMessageWithTimeout(client_socket, &message, TIMEOUT_INFINITE);
 	if (receive_result != MSG_SUCCESS)
 	{
 		if (message != NULL)
@@ -75,7 +75,7 @@ int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move)
 	message_t* message = NULL;
 	int receive_result;
 
-	receive_result = receive_result = ReceiveMessageWithTimeout(socket, &message, TIMEOUT_INFINITE);
+	receive_result = ReceiveMessageWithTimeout(client_socket, &message, TIMEOUT_INFINITE);
 	if (receive_result != SERVER_SUCCESS)
 	{
 		if (message != NULL)
