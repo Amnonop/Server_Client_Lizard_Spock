@@ -39,6 +39,54 @@ int SendClientCPUMessage(message_queue_t* message_queue)
 	return EnqueueMsg(message_queue, message_string);
 }
 
+int SendClientVersusMessage(message_queue_t* message_queue)
+{
+	char* message_name = "CLIENT_VERSUS";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	// Send the message
+	return EnqueueMsg(message_queue, message_string);
+}
+
+int SendClientLeaderBoardMessage(message_queue_t* message_queue)
+{
+	char* message_name = "CLIENT_LEADERBOARD";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	// Send the message
+	return EnqueueMsg(message_queue, message_string);
+}
+
+int SendClientQuitMessage(message_queue_t* message_queue)
+{
+	char* message_name = "CLIENT_DISCONNENT";
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s\n", message_name);
+
+	// Send the message
+	return EnqueueMsg(message_queue, message_string);
+}
+
 int SendPlayerMoveMessage(MOVE_TYPE player_move, message_queue_t* message_queue)
 {
 	char* message_name = "CLIENT_PLAYER_MOVE";

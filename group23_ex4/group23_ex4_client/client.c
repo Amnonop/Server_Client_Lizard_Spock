@@ -272,7 +272,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 		switch (user_choice)
 		{
 			case CLIENT_CPU:
-				client_state = WAITING_TO_START_GAME;
+				//client_state = WAITING_TO_START_GAME;
 				exit_code = SendClientCPUMessage(msg_queue);
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
@@ -281,6 +281,39 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				if (exit_code != CLIENT_SUCCESS)
 					return exit_code;
 			break;
+			case CLIENT_VERSUS:
+				//client_state = WAITING_TO_START_GAME;
+				exit_code = SendClientVersusMessage(msg_queue);
+				if (exit_code != MSG_SUCCESS)
+					return exit_code;
+
+				exit_code = Play(thread_params->socket);
+				if (exit_code != CLIENT_SUCCESS)
+					return exit_code;
+				break;
+
+			case LEADERBOARD:
+				//client_state = WAITING_TO_START_GAME;
+				exit_code = SendClientLeaderBoardMessage(msg_queue);
+				if (exit_code != MSG_SUCCESS)
+					return exit_code;
+
+				//exit_code = Play(thread_params->socket);
+				if (exit_code != CLIENT_SUCCESS)
+					return exit_code;
+				break;
+
+			case QUIT:
+				//client_state = WAITING_TO_START_GAME;
+				exit_code = SendClientQuitMessage(msg_queue);
+				if (exit_code != MSG_SUCCESS)
+					return exit_code;
+
+				//exit_code = Play(thread_params->socket);
+				if (exit_code != CLIENT_SUCCESS)
+					return exit_code;
+				break;
+
 			default:
 				break;
 		}
@@ -448,6 +481,74 @@ int GetMainMenuMessage(SOCKET socket)
 	free(message);
 	return exit_code;
 }
+
+int translatePlayerMove(char* move)
+{
+	if ((move[0] == "s") || (move[0] == "S"))
+	{
+		if ((move[1] == "c") || (move[1] == "C"))
+			return SCISSORS;
+		else
+			return SPOCK;
+	}
+	else if ((move[0] == "l") || (move[0] == "L"))
+	{
+		return LIZARD;
+	}
+	else if ((move[0] == "r") || (move[0] == "R"))
+	{
+		return ROCK;
+	}
+	else if ((move[0] == "p") || (move[0] == "P"))
+	{
+		return PAPER;
+	}
+}
+int computeWinner(int first_player_move, int  sec_player_move)
+{
+	//tie//
+	if (first_player_move = sec_player_move)
+		return 0;
+
+	else if (first_player_move == ROCK)
+	{
+		if ((sec_player_move == SCISSORS) || (sec_player_move == LIZARD))
+			return 1;
+		else return 2;
+	}
+	else if (first_player_move == PAPER)
+	{
+		if ((sec_player_move == ROCK) || (sec_player_move == SPOCK))
+			return 1;
+		else return 2;
+	}
+
+	else if (first_player_move == SCISSORS)
+	{
+		if ((sec_player_move == PAPER) || (sec_player_move == LIZARD))
+			return 1;
+		else return 2;
+	}
+
+	else if (first_player_move == LIZARD)
+	{
+		if ((sec_player_move == PAPER) || (sec_player_move == SPOCK))
+			return 1;
+		else return 2;
+	}
+
+	else if (first_player_move == SPOCK)
+	{
+		if ((sec_player_move == ROCK) || (sec_player_move == SCISSORS))
+			return 1;
+		else return 2;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 
 int Play(SOCKET socket)
 {
