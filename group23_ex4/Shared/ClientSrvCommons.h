@@ -1,7 +1,9 @@
 #ifndef CLIENT_SRV_COMMONS_H
 #define CLIENT_SRV_COMMONS_H
 
-#include "MessageTools.h"
+#define SERVER_RESPONSE_TIMEOUT 15
+#define CLIENT_RESPONSE_TIMEOUT 15
+#define CLIENT_VS_RESPONSE_TIMEOUT 30
 
 typedef enum
 {

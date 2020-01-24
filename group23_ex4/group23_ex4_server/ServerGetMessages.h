@@ -6,5 +6,6 @@
 
 int GetPlayerMainMenuChoice(SOCKET socket, MAIN_MENU_OPTIONS* user_choice);
 int GetPlayerGameOverMenuChoice(SOCKET client_socket, GAME_OVER_MENU_OPTIONS* user_choice);
+int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move);
 
 #endif

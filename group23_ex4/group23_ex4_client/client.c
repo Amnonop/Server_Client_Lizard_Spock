@@ -275,7 +275,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 			case CLIENT_CPU:
 				//client_state = WAITING_TO_START_GAME;
 				message_name = "CLIENT_CPU";
-				exit_code = SendClientCPUMessage(message_name, msg_queue);
+				exit_code = SendClientCPUMessage(msg_queue);
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
 
@@ -486,22 +486,22 @@ int GetMainMenuMessage(SOCKET socket)
 
 int translatePlayerMove(char* move)
 {
-	if ((move[0] == "s") || (move[0] == "S"))
+	if ((move[0] == 's') || (move[0] == 'S'))
 	{
-		if ((move[1] == "c") || (move[1] == "C"))
+		if ((move[1] == 'c') || (move[1] == 'C'))
 			return SCISSORS;
 		else
 			return SPOCK;
 	}
-	else if ((move[0] == "l") || (move[0] == "L"))
+	else if ((move[0] == 'l') || (move[0] == 'L'))
 	{
 		return LIZARD;
 	}
-	else if ((move[0] == "r") || (move[0] == "R"))
+	else if ((move[0] == 'r') || (move[0] == 'R'))
 	{
 		return ROCK;
 	}
-	else if ((move[0] == "p") || (move[0] == "P"))
+	else if ((move[0] == 'p') || (move[0] == 'P'))
 	{
 		return PAPER;
 	}
@@ -621,7 +621,7 @@ viewLeaderBoard(SOCKET socket)
 {
 	int exit_code;
 	char user_move[9];
-	MOVE_TYPE player_move;
+	MOVE_TYPE player_move = SPOCK;
 	game_results_t* game_results = NULL;
 	GAME_OVER_MENU_OPTIONS user_choice;
 	BOOL game_over = FALSE;
@@ -633,16 +633,16 @@ viewLeaderBoard(SOCKET socket)
 			return exit_code;
 
 		user_choice = ShowLeaderBoardMenuMessage();
-		if (user_choice == CLIENT_REFRESH)
+		if (user_choice == OPT_REPLAY)
 		{
-			exit_code = SendPlayerMoveMessage(msg_queue);
+			/*exit_code = SendPlayerMoveMessage(msg_queue);
 			if (exit_code != QUEUE_SUCCESS)
 			{
 				return CLIENT_SEND_MSG_FAILED;
-			}
+			}*/
 		}
 
-		else if (user_choice == CLIENT_MAIN_MENU)
+		else if (user_choice == OPT_MAIN_MENU)
 		{
 			exit_code = SendMainMenuMessage(msg_queue);
 			if (exit_code != QUEUE_SUCCESS)

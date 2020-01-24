@@ -9,6 +9,43 @@
 param_node_t* AddParameter(param_node_t* head, const char* param_value, int value_length);
 param_node_t* CreateParameter(const char* param_value, int value_length);
 
+int ReceiveMessageWithTimeout(SOCKET socket, message_t** message, long timeout_seconds)
+{
+	TransferResult_t receive_result;
+	char* accepted_string = NULL;
+
+	*message = (message_t*)malloc(sizeof(message_t));
+	if (*message == NULL)
+	{
+		printf("Failed to allocate memory.\n");
+		return MSG_MEM_ALLOC_FAILED;
+	}
+
+	// Waiting for CLIENT_REQUEST message
+	receive_result = ReceiveStringWithTimeout(&accepted_string, socket, timeout_seconds);
+	if (receive_result == TRNS_FAILED)
+	{
+		printf("Target disconnected. Ending communication.\n");
+		return MSG_TRANS_FAILED;
+	}
+	else if (receive_result == TRNS_DISCONNECTED)
+	{
+		printf("Target disconnected. Ending communication.\n");
+		return MSG_TRANS_FAILED;
+	}
+	else if (receive_result == TRNS_TIMEOUT)
+	{
+		printf("Timeout while waiting for response.\n");
+		return MSG_TIMEOUT;
+	}
+
+	printf("Received message: %s\n", accepted_string);
+	GetMessageStruct(*message, accepted_string);
+
+	free(accepted_string);
+	return MSG_SUCCESS;
+}
+
 int ReceiveMessage(SOCKET socket, message_t** message)
 {
 	TransferResult_t receive_result;
@@ -32,6 +69,11 @@ int ReceiveMessage(SOCKET socket, message_t** message)
 	{
 		printf("Target disconnected. Ending communication.\n");
 		return MSG_TRANS_FAILED;
+	}
+	else if (receive_result == TRNS_TIMEOUT)
+	{
+		printf("Timeout while waiting for response.\n");
+		return MSG_TIMEOUT;
 	}
 
 	printf("Received message: %s\n", accepted_string);
