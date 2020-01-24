@@ -39,7 +39,7 @@ int GetStartGameMessage(BOOL* start_game, char** oponent_name, SOCKET socket)
 	else if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_INVITE"))
 	{
 		*start_game = TRUE;
-		*oponent_name = CopyString(message->parameters);
+		*oponent_name = CopyString(message->parameters->param_value);
 		if (*oponent_name == NULL)
 		{
 			free(message);

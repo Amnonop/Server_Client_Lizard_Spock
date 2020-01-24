@@ -10,6 +10,7 @@
 #include "ServerMessages.h"
 #include "ServerGetMessages.h"
 #include "../Shared/socketS.h"
+#include <Windows.h>
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 #define NUM_OF_WORKER_THREADS 2
@@ -164,7 +165,7 @@ int RunServer(int port_number)
 				return SERVER_MEM_ALLOC_FAILED;
 			}
 			connected_clients[client_id]->socket = accept_socket;
-			connected_clients[client_id]->client_id = accept_socket;
+			connected_clients[client_id]->client_id = client_id;
 			connected_clients[client_id]->request_to_play = FALSE;
 
 			// Open a thread for the client
@@ -470,6 +471,10 @@ int FindOponent(int client_id)
 	int oponent_id;
 
 	oponent_id = 1 - client_id;
+
+	printf("Waiting to another player to connect...\n");
+	Sleep(15000);
+
 	if (connected_clients[oponent_id] != NULL)
 	{
 		if (connected_clients[oponent_id]->request_to_play)
