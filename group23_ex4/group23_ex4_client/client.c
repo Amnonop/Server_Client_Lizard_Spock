@@ -696,57 +696,19 @@ int MainClient(char* server_ip, int port_number, char* username)
 	HANDLE hThread[2];
 	WSADATA wsaData; 
 	int startup_result;
+	int connect_result;
+	SERVER_CONNECT_MENU_OPTIONS user_choice;
 
 	client_thread_params_t thread_params;
-	
-	startup_result = WSAStartup(MAKEWORD(2, 2), &wsaData);
-	if (startup_result != NO_ERROR)
-		printf("Error at WSAStartup()\n");
 
-	m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (m_socket == INVALID_SOCKET) {
-		printf("Error at socket(): %ld\n", WSAGetLastError());
-		WSACleanup();
-		return;
-	}
-
-	client_service.sin_family = AF_INET;
-	client_service.sin_addr.s_addr = inet_addr(server_ip);
-	client_service.sin_port = htons(port_number);
-
-	if (connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR) 
-	{
-		printf("Failed connecting to server on %s:%d. Exiting\n", server_ip, port_number);
-		WSACleanup();
-		exit(0x555);
-	}
-	else
-		//printf("Connected to server on %s:%s\n", SERVER_ADDRESS_STR, port_number);
-
-	thread_params.username = username;
-	thread_params.server_ip = server_ip;
-	thread_params.server_port = port_number;
-	thread_params.socket = m_socket;
-
-	//--> Creating mutex for logfile writing
-	logfile_mutex = CreateMutex(
-		NULL,	/* default security attributes */
-		FALSE,	/* initially not owned */
-		NULL);	/* unnamed mutex */
-	if (NULL == logfile_mutex)
-	{
-		printf("Error when creating logfile mutex\n", GetLastError());
-		exit(0x555);
-	}
-
-	//--> Creating message queue
+	// Initialize the message queue
 	msg_queue = CreateMessageQueue();
 	if (msg_queue == NULL) {
-		printf("Error creating msg_queue at MainClient function");
-		exit(0x555);
+		printf("Error initializing the message queue.\n");
+		return CLIENT_MSG_QUEUE_INIT_FAILED;
 	}
 
-	//--> Opening threads
+	// Start the Send Data thread
 	hThread[0] = CreateThread(
 		NULL,
 		0,
@@ -755,6 +717,69 @@ int MainClient(char* server_ip, int port_number, char* username)
 		0,
 		NULL
 	);
+	if (hThread[0] == NULL)
+	{
+		// TODO: Free message queue
+		return CLIENT_THREAD_CREATION_FAILED;
+	}
+	
+	startup_result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (startup_result != NO_ERROR)
+	{
+		printf("Error at WSAStartup()\n");
+		// TODO: Free message queue, Send Data thread handler
+		return CLIENT_WSA_STARTUP_ERROR;
+	}
+
+	m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (m_socket == INVALID_SOCKET) {
+		printf("Error at socket(): %ld\n", WSAGetLastError());
+		WSACleanup();
+		return CLIENT_SOCKET_CREATION_FAILED;
+	}
+
+	client_service.sin_family = AF_INET;
+	client_service.sin_addr.s_addr = inet_addr(server_ip);
+	client_service.sin_port = htons(port_number);
+
+	// Connection to server
+	while (TRUE)
+	{
+		connect_result = connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service));
+		if (connect_result == SOCKET_ERROR)
+		{
+			printf("Failed connected to server on %s:%d\n", server_ip, port_number);
+			printf("Choose what to do next:\n");
+			printf("1.	Try to reconnect\n");
+			printf("2.	Exit\n");
+			
+			scanf_s("%d", &user_choice);
+			if (user_choice == OPT_EXIT)
+			{
+				// TODO: Cleanup
+				return CLIENT_SUCCESS; // User chose to exit
+			}
+		}
+		else
+		{
+			printf("Connected to server on %s:%d\n", server_ip, port_number);
+			break;
+		}
+	}
+	//if (connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR) 
+	//{
+	//	printf("Failed connecting to server on %s:%d. Exiting\n", server_ip, port_number);
+	//	WSACleanup();
+	//	exit(0x555);
+	//}
+	//else
+	//	//printf("Connected to server on %s:%s\n", SERVER_ADDRESS_STR, port_number);
+
+	thread_params.username = username;
+	thread_params.server_ip = server_ip;
+	thread_params.server_port = port_number;
+	thread_params.socket = m_socket;
+	
 	/*hThread[1] = CreateThread(
 		NULL,
 		0,
@@ -786,8 +811,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 
 	WSACleanup();
 
-	if (logfile_mutex != NULL) CloseHandle(logfile_mutex); // Close logfile mutex handle
-
 	CloseHandle(msg_queue->access_mutex); // Message queue access_mutex
 	CloseHandle(msg_queue->msgs_count_semaphore); // Message queue msgs_count_semaphore
 	CloseHandle(msg_queue->queue_empty_event); // Message queue queue_empty_event
@@ -798,101 +821,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 		return 0;
 	else // The programm got an error
 		return 0x555;
-}
-
-//The function gets the raw string from user and the type of message to send to server: username/play/message, and returns the formated message to send to the server
-char* ConstructMessage(char *str, char *type)
-{
-	char *return_string = NULL, temp[10];
-	int i = 0, j = 0;
-
-	return_string = (char*)malloc(MAX_LINE * sizeof(char));
-	if (return_string == NULL) {
-		printf("Malloc Error in ConstructMessage function\n");
-		exit(-1);
-	}
-
-	if (STRINGS_ARE_EQUAL(type, "play")) {
-		strcpy(return_string, "PLAY_REQUEST");
-		return_string[12] = ':';
-		j = 13;
-		i = 5;
-		while (str[i] != '\0') {
-			if (str[i] == '\n')
-				break;
-			return_string[j] = str[i];
-			j++;
-			i++;
-		}
-		return_string[j] = '\0';
-	}
-	if (STRINGS_ARE_EQUAL(type, "message")) {
-		strcpy(return_string, "SEND_MESSAGE");
-		return_string[12] = ':';
-		j = 13;
-		i = 8;
-		while (str[i] != '\0') {
-			if (str[i] == '\n')
-				break;
-			if (str[i] == ' ') {
-				return_string[j] = ';';
-				return_string[j + 1] = ' ';
-				return_string[j + 2] = ';';
-				i++;
-				j = j + 3;
-			}
-			else {
-				return_string[j] = str[i];
-				j++;
-				i++;
-			}
-		}
-		return_string[j] = '\0';
-	}
-	if (STRINGS_ARE_EQUAL(type, "username")) {
-		strcpy(return_string, "NEW_USER_REQUEST");
-		return_string[16] = ':';
-		j = 17;
-		i = 0;
-		while (str[i] != '\0') {
-			if (str[i] == '\n')
-				break;
-			return_string[j] = str[i];
-			j++;
-			i++;
-		}
-		return_string[j] = '\0';
-	}
-
-	return return_string;
-}
-
-//The function detrmins if the string from the user (keyboard or file) is 'play' message (returns 1) or 'message' message (returns 2) or nither (returns 0)
-int MessageType(char *input) {
-	int type = 0;
-	char temp_input_play[MAX_LINE], temp_input_message[MAX_LINE];
-
-	// Coping the input to temps in order to check input type
-	temp_input_play[0] = input[0];
-	temp_input_message[0] = input[0];
-	temp_input_play[1] = input[1];
-	temp_input_message[1] = input[1];
-	temp_input_play[2] = input[2];
-	temp_input_message[2] = input[2];
-	temp_input_play[3] = input[3];
-	temp_input_message[3] = input[3];
-	temp_input_play[4] = '\0';
-	temp_input_message[4] = input[4];
-	temp_input_message[5] = input[5];
-	temp_input_message[6] = input[6];
-	temp_input_message[7] = '\0';
-
-	if (STRINGS_ARE_EQUAL(temp_input_play, "play") && (input[4] == ' ')) // It is a 'play' message
-		type = 1;
-	if (STRINGS_ARE_EQUAL(temp_input_message, "message") && (input[7] == ' ')) // It is a 'message' message
-		type = 2;
-
-	return type;
 }
 
 //The function terminats all threads. For type "clean" -> termination with code 0, and returns 0. For type "dirty" -> termination with code 0x555, and returns 0x555.
@@ -908,22 +836,6 @@ void thread_terminator(char *type) {
 		TerminateThread(hThread[1], 0x555);
 		TerminateThread(hThread[2], 0x555);
 	}
-}
-
-//The function gets file pointer to logfile, format char: Received from server/Send to server, and the message itself, and write it to logfile
-void PrintToLogFile(FILE *ptr, char *format, char *message) {
-	DWORD wait_code;
-	BOOL release_res;
-
-	wait_code = WaitForSingleObject(logfile_mutex, INFINITE);
-	if (wait_code != WAIT_OBJECT_0) printf("Fail while waiting for logfile mutex");
-
-	//critical region
-	fprintf(ptr, "%s: %s\n", format, message); //Writing to logfile
-	//end of critical region
-
-	release_res = ReleaseMutex(logfile_mutex);
-	if (release_res == FALSE) printf("Fail releasing logfile mutex");
 }
 
 int PrintMainMenu()

@@ -21,9 +21,11 @@ typedef struct client_params
 } client_params_t;
 
 HANDLE client_thread_handles[NUM_OF_WORKER_THREADS];
-client_info_t connected_clients[CLIENTS_MAX_NUM];
+client_info_t* connected_clients[CLIENTS_MAX_NUM];
 client_params_t client_params[CLIENTS_MAX_NUM];
 TransferResult_t SendRes;
+
+int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
 MOVE_TYPE GetComputerMove();
 int AcceptPlayer(client_info_t* client);
@@ -32,58 +34,9 @@ int HandlePlayer(client_info_t* client);
 int SaveUsername(const char* username, client_info_t* client);
 int Play(client_info_t* client);
 
-int SendServerApprovedMessage(SOCKET player)
-{
-	char* message_name = "SERVER_APPROVED";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	printf("Sending message: %s\n", message_string);
-
-	SendRes = SendString(message_string, player);
-	if (SendRes == TRNS_FAILED)
-	{
-		printf("Service socket error while writing, closing thread.\n");
-		closesocket(player);
-		return SERVER_TRANS_FAILED;
-	}
-
-	return SERVER_SUCCESS;
-}
-
-int SendServerMenuMessage(SOCKET player)
-{
-	char* message_name = "SERVER_MAIN_MENU";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	printf("Sending message: %s\n", message_string);
-
-	SendRes = SendString(message_string, player);
-	if (SendRes == TRNS_FAILED)
-	{
-		printf("Service socket error while writing, closing thread.\n");
-		closesocket(player);
-		return SERVER_TRANS_FAILED;
-	}
-
-	return SERVER_SUCCESS;
-}
-
 int RunServer(int port_number)
 {
+	int exit_code;
 	WSADATA wsa_data;
 	int startup_result;
 	SOCKET server_socket = INVALID_SOCKET;
@@ -95,6 +48,7 @@ int RunServer(int port_number)
 	int thread_index;
 	int client_thread_count;
 	int connected_clients_count = 0;
+	int client_id;
 
 	SOCKET accept_socket;
 
@@ -185,26 +139,83 @@ int RunServer(int port_number)
 
 		printf("Client connected.\n");
 
-		if (connected_clients_count < CLIENTS_MAX_NUM)
+		client_id = GetAvailableClientId();
+		if (client_id == -1)
 		{
-			connected_clients[connected_clients_count].socket = accept_socket;
+			// Send SERVER_DENIED message to the client
+			printf("Sending SERVER_DENIED message.\n");
+			exit_code = SendDeniedMessage(accept_socket);
+			if (exit_code != SERVER_SUCCESS)
+			{
+				// TODO: Cleanup
+				return exit_code;
+			}
+		}
+		else
+		{
+			// Open a thread for the client
+			connected_clients[client_id] = (client_info_t*)malloc(sizeof(client_info_t));
+			if (connected_clients[client_id] == NULL)
+			{
+				printf("Memory allocation failed.\n");
+				// TODO: Cleanup
+				return SERVER_MEM_ALLOC_FAILED;
+			}
+			connected_clients[client_id]->socket = accept_socket;
 
 			// Open a thread for the client
-			client_params[connected_clients_count].client_number = connected_clients_count;
-			client_thread_handles[connected_clients_count] = CreateThread(
-				NULL, 
-				0, 
-				(LPTHREAD_START_ROUTINE)ClientThread, 
-				(LPVOID)&(client_params[connected_clients_count]), 
-				0, 
+			client_params[client_id].client_number = client_id;
+			client_thread_handles[client_id] = CreateThread(
+				NULL,
+				0,
+				(LPTHREAD_START_ROUTINE)ClientThread,
+				(LPVOID)&(client_params[client_id]),
+				0,
 				NULL);
-			// TODO: Check if null
+			if (client_thread_handles[client_id] == NULL)
+			{
+				printf("Failed to create a thread for a new client.\n");
+				// TODO: Cleanup
+				return SERVER_THREAD_CREATION_FAILED;
+			}
 
 			connected_clients_count++;
 		}
+		//if (connected_clients_count < CLIENTS_MAX_NUM)
+		//{
+		//	connected_clients[connected_clients_count].socket = accept_socket;
+
+		//	// Open a thread for the client
+		//	client_params[connected_clients_count].client_number = connected_clients_count;
+		//	client_thread_handles[connected_clients_count] = CreateThread(
+		//		NULL, 
+		//		0, 
+		//		(LPTHREAD_START_ROUTINE)ClientThread, 
+		//		(LPVOID)&(client_params[connected_clients_count]), 
+		//		0, 
+		//		NULL);
+		//	// TODO: Check if null
+
+		//	connected_clients_count++;
+		//}
 	}
 
 	return SERVER_SUCCESS;
+}
+
+int GetAvailableClientId()
+{
+	int i = 0;
+
+	for (i = 0; i < CLIENTS_MAX_NUM; i++)
+	{
+		if (connected_clients[i] == NULL)
+		{
+			return i;
+		}
+	}
+
+	return -1;
 }
 
 int translatePlayerMove(char* move)
@@ -281,7 +292,7 @@ static DWORD ClientThread(LPVOID thread_params)
 
 	client_params = (client_params_t*)thread_params;
 	
-	exit_code = AcceptPlayer(&(connected_clients[client_params->client_number]));
+	exit_code = AcceptPlayer(connected_clients[client_params->client_number]);
 	if (exit_code != SERVER_SUCCESS)
 	{
 		// TODO: Terminate the thread for this client
@@ -290,7 +301,7 @@ static DWORD ClientThread(LPVOID thread_params)
 		
 	while (TRUE)
 	{
-		exit_code = HandlePlayer(&(connected_clients[client_params->client_number]));
+		exit_code = HandlePlayer(connected_clients[client_params->client_number]);
 		if (exit_code != SERVER_SUCCESS)
 		{
 			return exit_code;
@@ -371,7 +382,7 @@ int HandlePlayer(client_info_t* client)
 
 	while (TRUE)
 	{
-		exit_code = SendServerMenuMessage(client->socket);
+		exit_code = SendMainMenuMessage(client->socket);
 		if (exit_code != SERVER_SUCCESS)
 		{
 			return exit_code;

@@ -5,6 +5,9 @@
 #include "../Shared/ClientSrvCommons.h"
 #include "../Shared/MessageTools.h"
 
+int SendServerApprovedMessage(SOCKET socket);
+int SendDeniedMessage(SOCKET socket);
+int SendMainMenuMessage(SOCKET socket);
 int SendPlayerMoveRequestMessage(SOCKET socket);
 int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move);
 int ParsePlayerMoveMessage(message_t* message, MOVE_TYPE* player_move);
