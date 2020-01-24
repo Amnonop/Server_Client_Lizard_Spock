@@ -61,7 +61,7 @@ int SendClientLeaderBoardMessage(message_queue_t* message_queue)
 
 int SendClientQuitMessage(message_queue_t* message_queue)
 {
-	const char* message_name = "CLIENT_DISCONNENT";
+	const char* message_name = "CLIENT_DISCONNECT";
 	return SendClientMessageWithoutParams(message_name, message_queue);
 }
 
