@@ -634,8 +634,23 @@ viewLeaderBoard(SOCKET socket)
 
 		user_choice = ShowLeaderBoardMenuMessage();
 		if (user_choice == CLIENT_REFRESH)
+		{
+			exit_code = SendPlayerMoveMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
+		}
 
 		else if (user_choice == CLIENT_MAIN_MENU)
+		{
+			exit_code = SendMainMenuMessage(msg_queue);
+			if (exit_code != QUEUE_SUCCESS)
+			{
+				return CLIENT_SEND_MSG_FAILED;
+			}
+			game_over = TRUE;
+		}
 
 
 
