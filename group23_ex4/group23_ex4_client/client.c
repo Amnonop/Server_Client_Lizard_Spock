@@ -244,6 +244,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 	int exit_code;
 	char input[MAX_LINE], *send_message = NULL;
 	int run = 0, type = 0;
+	char* message_name = NULL;
 	client_thread_params_t* thread_params;
 	DWORD wait_code;
 	BOOL release_res;
@@ -273,7 +274,8 @@ static DWORD ApplicationThread(LPVOID lpParam)
 		{
 			case CLIENT_CPU:
 				//client_state = WAITING_TO_START_GAME;
-				exit_code = SendClientCPUMessage(msg_queue);
+				message_name = "CLIENT_CPU";
+				exit_code = SendClientCPUMessage(message_name, msg_queue);
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
 

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "ClientMessages.h"
 #include "MessageQueue.h"
+#include "Commons.h"
 #include "../Shared/ClientSrvCommons.h"
 
 int SendClientRequestMessage(char* username, message_queue_t* message_queue)
@@ -23,68 +24,45 @@ int SendClientRequestMessage(char* username, message_queue_t* message_queue)
 	return exit_code;
 }
 
-int SendClientCPUMessage(message_queue_t* message_queue)
+
+int SendClientMessageWithoutParams(const char* message_name, message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_CPU";
 	int message_length;
 	char* message_string;
 
 	// Build message string
 	message_length = strlen(message_name) + 2;
 	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
+	if (message_string == NULL)
+		return CLIENT_MEM_ALLOC_FAILED;
 	sprintf_s(message_string, message_length, "%s\n", message_name);
 
 	// Send the message
 	return EnqueueMsg(message_queue, message_string);
+}
+
+int SendClientCPUMessage(message_queue_t* message_queue)
+{
+	const char* message_name = "CLIENT_CPU";
+	return SendClientMessageWithoutParams(message_name, message_queue);
 }
 
 int SendClientVersusMessage(message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_VERSUS";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	// Send the message
-	return EnqueueMsg(message_queue, message_string);
+	const char* message_name = "CLIENT_VERSUS";
+	return SendClientMessageWithoutParams(message_name, message_queue);
 }
 
 int SendClientLeaderBoardMessage(message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_LEADERBOARD";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	// Send the message
-	return EnqueueMsg(message_queue, message_string);
+	const char* message_name = "CLIENT_LEADERBOARD";
+	return SendClientMessageWithoutParams(message_name, message_queue);
 }
 
 int SendClientQuitMessage(message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_DISCONNENT";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	// Send the message
-	return EnqueueMsg(message_queue, message_string);
+	const char* message_name = "CLIENT_DISCONNENT";
+	return SendClientMessageWithoutParams(message_name, message_queue);
 }
 
 int SendPlayerMoveMessage(MOVE_TYPE player_move, message_queue_t* message_queue)
