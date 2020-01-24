@@ -33,6 +33,7 @@ int CheckWinner(MOVE_TYPE player_a_move, MOVE_TYPE player_b_move);
 int HandlePlayer(client_info_t* client);
 int SaveUsername(const char* username, client_info_t* client);
 int Play(client_info_t* client);
+int ClientDisconnected(int client_id);
 
 int RunServer(int port_number)
 {
@@ -154,7 +155,7 @@ int RunServer(int port_number)
 		else
 		{
 			// Open a thread for the client
-			connected_clients[client_id] = (client_info_t*)malloc(sizeof(client_info_t));
+			connected_clients[client_id] = malloc(sizeof(client_info_t));
 			if (connected_clients[client_id] == NULL)
 			{
 				printf("Memory allocation failed.\n");
@@ -302,7 +303,11 @@ static DWORD ClientThread(LPVOID thread_params)
 	while (TRUE)
 	{
 		exit_code = HandlePlayer(connected_clients[client_params->client_number]);
-		if (exit_code != SERVER_SUCCESS)
+		if (exit_code == SERVER_CLIENT_DISCONNECTED)
+		{
+			return ClientDisconnected(client_params->client_number);
+		}
+		else if (exit_code != SERVER_SUCCESS)
 		{
 			return exit_code;
 		}
@@ -400,7 +405,7 @@ int HandlePlayer(client_info_t* client)
 				exit_code = Play(client);
 				break;
 			case QUIT:
-				exit_code = SERVER_SUCCESS;
+				return SERVER_CLIENT_DISCONNECTED;
 				break;
 			default:
 				break;
@@ -476,4 +481,17 @@ MOVE_TYPE GetComputerMove()
 	move = rand() % 5;
 	printf("Server is playing: %d\n", move);
 	return move;
+}
+
+int ClientDisconnected(int client_id)
+{
+	// Close the socket
+	closesocket(connected_clients[client_id]->socket);
+
+	// Clear client's info
+	//free(connected_clients[client_id]->userinfo);
+	free(connected_clients[client_id]);
+	connected_clients[client_id] = NULL;
+
+	return SERVER_CLIENT_DISCONNECTED;
 }

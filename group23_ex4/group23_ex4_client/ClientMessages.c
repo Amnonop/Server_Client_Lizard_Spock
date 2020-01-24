@@ -73,7 +73,7 @@ int SendClientLeaderBoardMessage(message_queue_t* message_queue)
 
 int SendClientQuitMessage(message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_DISCONNENT";
+	char* message_name = "CLIENT_DISCONNECT";
 	int message_length;
 	char* message_string;
 
