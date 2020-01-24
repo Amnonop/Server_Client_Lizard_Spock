@@ -37,6 +37,7 @@ MOVE_TYPE ParsePlayerMove(const char* player_move);
 int GetPlayerMoveRequestMessage(SOCKET socket);
 void ShowGameResults(game_results_t* game_results);
 GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice();
+int PlayerVsPlayer(SOCKET socket);
 
 //Reading data coming from the server Thread
 static DWORD RecvDataThread(LPVOID lpParam)
@@ -285,13 +286,18 @@ static DWORD ApplicationThread(LPVOID lpParam)
 			break;
 			case CLIENT_VERSUS:
 				//client_state = WAITING_TO_START_GAME;
-				exit_code = SendClientVersusMessage(msg_queue);
+				exit_code = PlayerVsPlayer(thread_params->socket);
+				if (exit_code != CLIENT_SUCCESS)
+				{
+					return exit_code;
+				}
+				/*exit_code = SendClientVersusMessage(msg_queue);
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
 
 				exit_code = Play(thread_params->socket);
 				if (exit_code != CLIENT_SUCCESS)
-					return exit_code;
+					return exit_code;*/
 				break;
 
 			case LEADERBOARD:
@@ -614,6 +620,34 @@ int Play(SOCKET socket)
 			game_over = TRUE;
 		}
 	}
+}
+
+int PlayerVsPlayer(SOCKET socket)
+{
+	int exit_code;
+	BOOL start_game = FALSE;
+	char* oponent_name;
+
+	exit_code = SendClientVersusMessage(msg_queue);
+	if (exit_code != MSG_SUCCESS)
+		return CLIENT_TRNS_FAILED;
+
+	exit_code = GetStartGameMessage(&start_game, &oponent_name, socket);
+	if (exit_code != CLIENT_SUCCESS)
+	{
+		return exit_code;
+	}
+
+	if (!start_game)
+	{
+		printf("No oponents.\n");
+	}
+	else
+	{
+		printf("Starting play vs %s", oponent_name);
+	}
+
+	return CLIENT_SUCCESS;
 }
 
 

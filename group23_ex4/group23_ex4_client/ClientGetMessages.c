@@ -4,6 +4,7 @@
 #include "../Shared/MessageTools.h"
 #include "Commons.h"
 #include "../Shared/StringTools.h"
+#include "../Shared/ClientSrvCommons.h"
 
 typedef enum
 {
@@ -14,6 +15,48 @@ typedef enum
 } GAME_RESULTS_PARAM;
 
 game_results_t* ParseGameResultsMessage(param_node_t* head);
+
+int GetStartGameMessage(BOOL* start_game, char** oponent_name, SOCKET socket)
+{
+	int exit_code;
+	message_t* message = NULL;
+
+	exit_code = ReceiveMessageWithTimeout(socket, &message, CLIENT_VS_RESPONSE_TIMEOUT);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+		{
+			free(message);
+			return CLIENT_TRNS_FAILED;
+		}
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_NO_OPPONENTS"))
+	{
+		*start_game = FALSE;
+		return CLIENT_SUCCESS;
+	}
+	else if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_INVITE"))
+	{
+		*start_game = TRUE;
+		*oponent_name = CopyString(message->parameters);
+		if (*oponent_name == NULL)
+		{
+			free(message);
+			return CLIENT_MEM_ALLOC_FAILED;
+		}
+
+		return CLIENT_SUCCESS;
+	}
+	else
+	{
+		printf("Expected to get SERVER_NO_OPPONENTS or SERVER_INVITE but got %s instead.\n", message->message_type);
+		exit_code = CLIENT_UNEXPECTED_MESSAGE;
+	}
+
+	free(message);
+	return exit_code;
+}
 
 int GetGameResultsMessage(SOCKET socket, game_results_t** game_results)
 {
