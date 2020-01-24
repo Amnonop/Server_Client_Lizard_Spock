@@ -32,6 +32,12 @@ int SendPlayerMoveRequestMessage(SOCKET socket)
 	return SendMessageWithoutParams(message_name, socket);
 }
 
+int SendPlayerAloneMessage(SOCKET socket)
+{
+	const char* message_name = "SERVER_NO_OPPONENTS";
+	return SendMessageWithoutParams(message_name, socket);
+}
+
 int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move)
 {
 	int exit_code = SERVER_SUCCESS;

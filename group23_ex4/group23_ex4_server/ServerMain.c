@@ -163,9 +163,12 @@ int RunServer(int port_number)
 				return SERVER_MEM_ALLOC_FAILED;
 			}
 			connected_clients[client_id]->socket = accept_socket;
+			connected_clients[client_id]->client_id = accept_socket;
+			connected_clients[client_id]->request_to_play = FALSE;
 
 			// Open a thread for the client
 			client_params[client_id].client_number = client_id;
+			
 			client_thread_handles[client_id] = CreateThread(
 				NULL,
 				0,
@@ -378,6 +381,45 @@ int SaveUsername(const char* username, client_info_t* client)
 	strcpy_s(client->userinfo, username_length, username);
 }
 
+int PlayerVersusPlaye(client_info_t* client)
+{
+	BOOL end_game = FALSE;
+	BOOL other_player_status = FALSE;
+	int exit_code;
+	MOVE_TYPE player_0_move;
+	MOVE_TYPE player_1_move;
+	BOOL curr_client_id = client->client_id;
+	SOCKET other_client_socket = connected_clients[1 - curr_client_id]->socket;
+	if (connected_clients[1 - client->client_id]->request_to_play == FALSE)
+		return FALSE;
+	else
+	{
+		while (!end_game)
+		{
+			exit_code = SendPlayerMoveRequestMessage(client->socket);
+			if (exit_code != SERVER_SUCCESS)
+				return exit_code;
+
+			// Wait for the player's move CLIENT_PLAYER_MOVE
+			exit_code = GetPlayerMove(client->socket, &player_0_move);
+			if (exit_code != SERVER_SUCCESS)
+			{
+				return exit_code;
+			}
+			exit_code = SendPlayerMoveRequestMessage(other_client_socket);
+			if (exit_code != SERVER_SUCCESS)
+				return exit_code;
+
+			// Wait for the player's move CLIENT_PLAYER_MOVE
+			exit_code = GetPlayerMove(client->socket, &player_1_move);
+			if (exit_code != SERVER_SUCCESS)
+			{
+				return exit_code;
+			}
+	}
+
+}
+
 int HandlePlayer(client_info_t* client)
 {
 	message_t* message = NULL;
@@ -403,6 +445,12 @@ int HandlePlayer(client_info_t* client)
 		{
 			case CLIENT_CPU:
 				exit_code = Play(client);
+				break;
+			case CLIENT_VERSUS:
+				client->request_to_play = TRUE;
+				exit_code = PlayerVersusPlayer(conn, client);
+				if  (exit_code == FALSE)
+					SendPlayerAloneMessage(client->socket); //'no opponents'
 				break;
 			case QUIT:
 				return SERVER_CLIENT_DISCONNECTED;
@@ -445,7 +493,8 @@ int Play(client_info_t* client)
 		// Send SERVER_GAME_RESULTS
 		winner = CheckWinner(player_move, computer_move);
 		if (winner == 1)
-			exit_code = SendGameResultsMessage("Server", computer_move, player_move, client->userinfo, client->socket); // TODO: Send player username
+			exit_code = SendGameResultsMessage("Server", computer_move, player_move, client->userinfo, client->socket);
+		// TODO: Send player username
 		else
 			exit_code = SendGameResultsMessage("Server", computer_move, player_move, "Server", client->socket);
 		
