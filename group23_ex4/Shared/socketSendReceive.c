@@ -14,6 +14,13 @@
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
+typedef enum
+{
+	SELECT_ERROR_OCCURRED = -1,
+	SELECT_TIMEOUT = 0,
+	SELECT_DATA_READY
+};
+
 TransferResult_t SendBuffer(const char* Buffer, int BytesToSend, SOCKET sd)
 {
 	const char* CurPlacePtr = Buffer;
@@ -99,6 +106,7 @@ TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd)
 	int TotalStringSizeInBytes;
 	TransferResult_t RecvRes;
 	char* StrBuffer = NULL;
+	int select_timing;
 
 	if ((OutputStrPtr == NULL) || (*OutputStrPtr != NULL))
 	{
@@ -111,7 +119,6 @@ TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd)
 
 	/* The request is received in two parts. First the Length of the string (stored in
 	   an int variable ), then the string itself. */
-
 	RecvRes = ReceiveBuffer(
 		(char *)(&TotalStringSizeInBytes),
 		(int)(sizeof(TotalStringSizeInBytes)), // 4 bytes
@@ -139,4 +146,54 @@ TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd)
 	}
 
 	return RecvRes;
+}
+
+TransferResult_t ReceiveStringWithTimeout(char** OutputStrPtr, SOCKET sd, long timeout_seconds)
+{
+	/* Recv the the request to the server on socket sd */
+	int TotalStringSizeInBytes;
+	TransferResult_t RecvRes;
+	char* StrBuffer = NULL;
+	int select_timing;
+
+	if ((OutputStrPtr == NULL) || (*OutputStrPtr != NULL))
+	{
+		printf("The first input to ReceiveString() must be "
+			"a pointer to a char pointer that is initialized to NULL. For example:\n"
+			"\tchar* Buffer = NULL;\n"
+			"\tReceiveString( &Buffer, ___ )\n");
+		return TRNS_FAILED;
+	}
+
+	/* The request is received in two parts. First the Length of the string (stored in
+	   an int variable ), then the string itself. */
+	if (timeout_seconds != TIMEOUT_INFINITE)
+	{
+		select_timing = SetReceiveTimeout(sd, timeout_seconds);
+		switch (select_timing)
+		{
+		case SELECT_ERROR_OCCURRED:
+			return TRNS_FAILED;
+		case SELECT_TIMEOUT:
+			return TRNS_TIMEOUT;
+		case SELECT_DATA_READY:
+			return ReceiveString(OutputStrPtr, sd);
+		default:
+			break;
+		}
+	}
+}
+
+int SetReceiveTimeout(SOCKET socket, long seconds)
+{
+	struct timeval timeout;
+	struct fd_set fds;
+
+	timeout.tv_sec = seconds;
+	timeout.tv_usec = 0;
+
+	FD_ZERO(&fds);
+	FD_SET(socket, &fds);
+
+	return select(0, &fds, 0, 0, &timeout);
 }

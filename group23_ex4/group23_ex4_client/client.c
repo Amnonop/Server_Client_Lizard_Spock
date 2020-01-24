@@ -621,7 +621,7 @@ viewLeaderBoard(SOCKET socket)
 {
 	int exit_code;
 	char user_move[9];
-	MOVE_TYPE player_move;
+	MOVE_TYPE player_move = SPOCK;
 	game_results_t* game_results = NULL;
 	GAME_OVER_MENU_OPTIONS user_choice;
 	BOOL game_over = FALSE;
@@ -633,16 +633,16 @@ viewLeaderBoard(SOCKET socket)
 			return exit_code;
 
 		user_choice = ShowLeaderBoardMenuMessage();
-		if (user_choice == CLIENT_REFRESH)
+		if (user_choice == OPT_REPLAY)
 		{
-			exit_code = SendPlayerMoveMessage(msg_queue);
+			/*exit_code = SendPlayerMoveMessage(msg_queue);
 			if (exit_code != QUEUE_SUCCESS)
 			{
 				return CLIENT_SEND_MSG_FAILED;
-			}
+			}*/
 		}
 
-		else if (user_choice == CLIENT_MAIN_MENU)
+		else if (user_choice == OPT_MAIN_MENU)
 		{
 			exit_code = SendMainMenuMessage(msg_queue);
 			if (exit_code != QUEUE_SUCCESS)

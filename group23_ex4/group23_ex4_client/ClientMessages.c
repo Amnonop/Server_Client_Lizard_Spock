@@ -26,7 +26,18 @@ int SendClientMessageWithoutParams(const char* message_name, message_queue_t* me
 int SendClientRequestMessage(char* username, message_queue_t* message_queue)
 {
 	const char* message_name = "CLIENT_REQUEST";
-	return SendClientMessageWithoutParams(message_name, message_queue);
+	int message_length;
+	char* message_string;
+
+	// Build message string
+	message_length = strlen(message_name) + 1 + strlen(username) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	// TODO: Check malloc
+	sprintf_s(message_string, message_length, "%s:%s\n", message_name, username);
+
+	// Send the message
+	printf("Sending CLIENT_PLAYER_MOVE.\n");
+	return EnqueueMsg(message_queue, message_string);
 }
 
 

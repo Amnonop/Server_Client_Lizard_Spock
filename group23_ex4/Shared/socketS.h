@@ -17,7 +17,9 @@
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED } TransferResult_t;
+#define TIMEOUT_INFINITE 9999
+
+typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED, TRNS_TIMEOUT } TransferResult_t;
 
 /**
  * SendBuffer() uses a socket to send a buffer.
@@ -80,7 +82,9 @@ TransferResult_t ReceiveBuffer(char* OutputBuffer, int RemainingBytesToReceive, 
  * TRNS_DISCONNECTED - if the socket was disconnected
  * TRNS_FAILED - otherwise
  */
+//TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd);
 TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd);
+TransferResult_t ReceiveStringWithTimeout(char** OutputStrPtr, SOCKET sd, long timeout_seconds);
 
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/

@@ -6,7 +6,8 @@ typedef enum
 	MSG_SUCCESS,
 	MSG_MEM_ALLOC_FAILED,
 	MSG_TRANS_FAILED,
-	MSG_MESSAGE_PARSE_FAILED
+	MSG_MESSAGE_PARSE_FAILED,
+	MSG_TIMEOUT
 } MESSAGE_CODES;
 
 typedef struct param_node {
@@ -20,5 +21,7 @@ typedef struct message {
 } message_t;
 
 int GetMessageStruct(message_t *message, char *raw_string);
+int ReceiveMessage(SOCKET socket, message_t** message);
+int ReceiveMessageWithTimeout(SOCKET socket, message_t** message, long timeout_seconds);
 
 #endif
