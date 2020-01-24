@@ -14,5 +14,6 @@ int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move,
 int SendGameOverMenu(SOCKET socket);
 int SendNoOponentsMessage(SOCKET socket);
 int SendServerInviteMessage(char* oponent_name, SOCKET socket);
+char* MoveTypeToString(MOVE_TYPE move);
 
 #endif
