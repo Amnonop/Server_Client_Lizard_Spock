@@ -8,6 +8,24 @@
 int SendMessageWithoutParams(const char* message_type, SOCKET socket);
 char* MoveTypeToString(MOVE_TYPE move);
 
+int SendServerApprovedMessage(SOCKET socket)
+{
+	const char* message_name = "SERVER_APPROVED";
+	return SendMessageWithoutParams(message_name, socket);
+}
+
+int SendDeniedMessage(SOCKET socket)
+{
+	const char* message_name = "SERVER_DENIED";
+	return SendMessageWithoutParams(message_name, socket);
+}
+
+int SendMainMenuMessage(SOCKET socket)
+{
+	const char* message_name = "SERVER_MAIN_MENU";
+	return SendMessageWithoutParams(message_name, socket);
+}
+
 int SendPlayerMoveRequestMessage(SOCKET socket)
 {
 	const char* message_name = "SERVER_PLAYER_MOVE_REQUEST";
