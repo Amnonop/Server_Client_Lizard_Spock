@@ -101,7 +101,7 @@ int SendPlayerMoveMessage(MOVE_TYPE player_move, message_queue_t* message_queue)
 	sprintf_s(message_string, message_length, "%s:%s\n", message_name, player_move_str);
 
 	// Send the message
-	printf("Sending CLIENT_PLAYER_MOVE.\n");
+	printf("Sending %s.\n", message_string);
 	return EnqueueMsg(message_queue, message_string);
 }
 

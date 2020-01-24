@@ -486,22 +486,22 @@ int GetMainMenuMessage(SOCKET socket)
 
 int translatePlayerMove(char* move)
 {
-	if ((move[0] == "s") || (move[0] == "S"))
+	if ((move[0] == 's') || (move[0] == 'S'))
 	{
-		if ((move[1] == "c") || (move[1] == "C"))
+		if ((move[1] == 'c') || (move[1] == 'C'))
 			return SCISSORS;
 		else
 			return SPOCK;
 	}
-	else if ((move[0] == "l") || (move[0] == "L"))
+	else if ((move[0] == 'l') || (move[0] == 'L'))
 	{
 		return LIZARD;
 	}
-	else if ((move[0] == "r") || (move[0] == "R"))
+	else if ((move[0] == 'r') || (move[0] == 'R'))
 	{
 		return ROCK;
 	}
-	else if ((move[0] == "p") || (move[0] == "P"))
+	else if ((move[0] == 'p') || (move[0] == 'P'))
 	{
 		return PAPER;
 	}
