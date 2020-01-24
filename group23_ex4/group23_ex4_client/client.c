@@ -275,7 +275,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 			case CLIENT_CPU:
 				//client_state = WAITING_TO_START_GAME;
 				message_name = "CLIENT_CPU";
-				exit_code = SendClientCPUMessage(message_name, msg_queue);
+				exit_code = SendClientCPUMessage(msg_queue);
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
 

@@ -17,6 +17,7 @@
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
+#define RESPONSE_TIMEOUT_SEC 15
 #define TIMEOUT_INFINITE 9999
 
 typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED, TRNS_TIMEOUT } TransferResult_t;
@@ -82,9 +83,8 @@ TransferResult_t ReceiveBuffer(char* OutputBuffer, int RemainingBytesToReceive, 
  * TRNS_DISCONNECTED - if the socket was disconnected
  * TRNS_FAILED - otherwise
  */
-//TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd);
-TransferResult_t ReceiveString(char** OutputStrPtr, SOCKET sd);
-TransferResult_t ReceiveStringWithTimeout(char** OutputStrPtr, SOCKET sd, long timeout_seconds);
+TransferResult_t ReceiveString(char** output_string, SOCKET socket);
+TransferResult_t ReceiveStringWithTimeout(char** output_string, SOCKET socket, long timeout_seconds);
 
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
