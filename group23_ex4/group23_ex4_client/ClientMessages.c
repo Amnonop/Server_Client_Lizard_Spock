@@ -34,7 +34,7 @@ int SendClientMessageWithoutParams(const char* message_name, message_queue_t* me
 	message_length = strlen(message_name) + 2;
 	message_string = (char*)malloc(sizeof(char)*message_length);
 	if (message_string == NULL)
-		return CLIENT_MEM_ALLOC_FAILED;
+		return QUEUE_MEM_ALLOC_FAILED;
 	sprintf_s(message_string, message_length, "%s\n", message_name);
 
 	// Send the message
@@ -105,40 +105,18 @@ int SendPlayerMoveMessage(MOVE_TYPE player_move, message_queue_t* message_queue)
 	return EnqueueMsg(message_queue, message_string);
 }
 
+
+
+
 int SendClientReplayMessage(message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_REPLAY";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	if (message_string == NULL)
-	{
-		return QUEUE_MEM_ALLOC_FAILED;
-	}
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	// Send the message
-	return EnqueueMsg(message_queue, message_string);
+	const char* message_name = "CLIENT_REPLAY";
+	return SendClientMessageWithoutParams(message_name, message_queue);
 }
 
 int SendMainMenuMessage(message_queue_t* message_queue)
 {
-	char* message_name = "CLIENT_MAIN_MENU";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	if (message_string == NULL)
-	{
-		return QUEUE_MEM_ALLOC_FAILED;
-	}
-	sprintf_s(message_string, message_length, "%s\n", message_name);
-
-	// Send the message
-	return EnqueueMsg(message_queue, message_string);
+	const char* message_name = "CLIENT_MAIN_MENU";
+	return SendClientMessageWithoutParams(message_name, message_queue);
 }
+
