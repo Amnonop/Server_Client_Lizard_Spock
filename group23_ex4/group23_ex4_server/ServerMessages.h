@@ -12,5 +12,7 @@ int SendPlayerMoveRequestMessage(SOCKET socket);
 int ParsePlayerMoveMessage(message_t* message, MOVE_TYPE* player_move);
 int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move, MOVE_TYPE player_move, const char* winner_name, SOCKET socket);
 int SendGameOverMenu(SOCKET socket);
+int SendNoOponentsMessage(SOCKET socket);
+int SendServerInviteMessage(char* oponent_name, SOCKET socket);
 
 #endif
