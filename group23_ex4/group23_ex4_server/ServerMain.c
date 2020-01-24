@@ -489,7 +489,6 @@ int ClientDisconnected(int client_id)
 	closesocket(connected_clients[client_id]->socket);
 
 	// Clear client's info
-	//free(connected_clients[client_id]->userinfo);
 	free(connected_clients[client_id]);
 	connected_clients[client_id] = NULL;
 
