@@ -5,24 +5,6 @@
 #include "Commons.h"
 #include "../Shared/ClientSrvCommons.h"
 
-int SendClientRequestMessage(char* username, message_queue_t* message_queue)
-{
-	int exit_code;
-	char* message_name = "CLIENT_REQUEST";
-	int message_length;
-	char* message_string;
-
-	// Build message string
-	message_length = strlen(message_name) + 1 + strlen(username) + 2;
-	message_string = (char*)malloc(sizeof(char)*message_length);
-	// TODO: Check malloc
-	sprintf_s(message_string, message_length, "%s:%s\n", message_name, username);
-
-	// Send the message
-	exit_code = EnqueueMsg(message_queue, message_string);
-
-	return exit_code;
-}
 
 
 int SendClientMessageWithoutParams(const char* message_name, message_queue_t* message_queue)
@@ -40,6 +22,13 @@ int SendClientMessageWithoutParams(const char* message_name, message_queue_t* me
 	// Send the message
 	return EnqueueMsg(message_queue, message_string);
 }
+
+int SendClientRequestMessage(char* username, message_queue_t* message_queue)
+{
+	const char* message_name = "CLIENT_REQUEST";
+	return SendClientMessageWithoutParams(message_name, message_queue);
+}
+
 
 int SendClientCPUMessage(message_queue_t* message_queue)
 {
