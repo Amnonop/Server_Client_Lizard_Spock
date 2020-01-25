@@ -416,31 +416,6 @@ static DWORD ClientThread(LPVOID thread_params)
 		{
 			return exit_code;
 		}
-		//// waiting for new message
-		//accepted_string = NULL;
-		//RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
-		//if (RecvRes == TRNS_FAILED) {
-		//	printf("Player disconnected. Ending communication.\n");
-		//	//closesocket(players_sockets[player_number]);
-		//	//SetEvent(DiscconectThem);
-		//	return -1;
-		//}
-		//else if (RecvRes == TRNS_DISCONNECTED) {
-		//	printf("Player disconnected. Ending communication.\n");
-		//	//closesocket(players_sockets[player_number]);
-		//	//SetEvent(DiscconectThem);
-		//	return -1;
-		//}
-
-		//// breake message into message type and it's other parts
-		//printf("Received message: %s\n", accepted_string);
-		//GetMessageStruct(message, accepted_string);
-		//int move = GetComputerMove();
-		//if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
-		//{
-		//	int move = GetComputerMove();
-		//	SendServerMoveMessage(connected_clients[client_params->client_number].socket);
-		//}
 	}
 }
 
