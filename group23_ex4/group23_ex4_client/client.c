@@ -823,7 +823,10 @@ void ShowGameResults(game_results_t* game_results)
 {
 	printf("You played: %s\n", game_results->player_move);
 	printf("%s played: %s\n", game_results->oponent_name, game_results->oponent_move);
-	printf("%s won!\n", game_results->winner);
+	if (game_results->winner != NULL)
+	{
+		printf("%s won!\n", game_results->winner);
+	}
 }
 
 GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice()

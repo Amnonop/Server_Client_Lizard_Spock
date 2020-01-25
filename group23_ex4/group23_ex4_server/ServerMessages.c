@@ -86,16 +86,28 @@ int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move,
 	message_string = (char*)malloc(sizeof(char)*message_length);
 	if (message_string == NULL)
 		return SERVER_MEM_ALLOC_FAILED;
+	if (winner_name != NULL)
+	{
+		sprintf_s(message_string, message_length, "%s:%s;%s;%s;%s\n",
+			message_name,
+			oponent_username,
+			oponent_move_str,
+			player_move_str,
+			winner_name);
 
-	sprintf_s(message_string, message_length, "%s:%s;%s;%s;%s\n", 
-		message_name, 
-		oponent_username, 
-		oponent_move_str, 
-		player_move_str, 
-		winner_name);
+		printf("Sending message: %s\n", message_string);
+	}
 
-	printf("Sending message: %s\n", message_string);
+	else if (winner_name == NULL)
+	{
+		sprintf_s(message_string, message_length, "%s:%s;%s;%s;%s\n",
+			message_name,
+			oponent_username,
+			oponent_move_str,
+			player_move_str);
 
+		printf("Sending message: %s\n", message_string);
+	}
 	send_result = SendString(message_string, socket);
 	if (send_result == TRNS_FAILED)
 	{
