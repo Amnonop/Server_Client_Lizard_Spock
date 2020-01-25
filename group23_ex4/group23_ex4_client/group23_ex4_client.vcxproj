@@ -127,6 +127,7 @@
     <ClCompile Include="ClientMessages.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="MessageQueue.c" />
+    <ClCompile Include="PlayerVsPlayer.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\ClientSrvCommons.h" />
@@ -139,6 +140,7 @@
     <ClInclude Include="Commons.h" />
     <ClInclude Include="MessageQueue.h" />
     <ClInclude Include="others.h" />
+    <ClInclude Include="PlayerVsPlayer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -108,7 +108,7 @@ int GetGameOverMenuMessage(SOCKET socket)
 		if (message != NULL)
 		{
 			free(message);
-			return CLIENT_RECEIVE_MSG_FAILED;
+			return CLIENT_TRNS_FAILED;
 		}
 	}
 
@@ -204,4 +204,40 @@ void FreeGameResults(game_results_t* game_results)
 		free(game_results->winner);
 
 	free(game_results);
+}
+
+int GetReplayStatus(BOOL* replay, SOCKET socket)
+{
+	int exit_code;
+	message_t* message = NULL;
+
+	printf("Waiting for SERVER_PLAYER_MOVE_REQUEST.\n");
+	exit_code = ReceiveMessage(socket, &message);
+	if (exit_code != MSG_SUCCESS)
+	{
+		if (message != NULL)
+		{
+			free(message);
+			return CLIENT_TRNS_FAILED;
+		}
+	}
+
+	if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_PLAYER_MOVE_REQUEST"))
+	{
+		*replay = TRUE;
+		exit_code = CLIENT_SUCCESS;
+	}
+	else if (STRINGS_ARE_EQUAL(message->message_type, "SERVER_OPPONENT_QUIT"))
+	{
+		*replay = FALSE;
+		exit_code = CLIENT_SUCCESS;
+	}
+	else
+	{
+		printf("Expected to get SERVER_PLAYER_MOVE_REQUEST or SERVER_OPPONENT_QUIT but got %s instead.\n", message->message_type);
+		exit_code = CLIENT_UNEXPECTED_MESSAGE;
+	}
+
+	free(message);
+	return exit_code;
 }

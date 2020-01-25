@@ -48,6 +48,9 @@
     <ClCompile Include="..\Shared\ClientSrvCommons.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PlayerVsPlayer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client.h">
@@ -78,6 +81,9 @@
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ClientGetMessages.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerVsPlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

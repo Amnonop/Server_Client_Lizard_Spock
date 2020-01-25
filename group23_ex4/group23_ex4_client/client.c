@@ -12,6 +12,7 @@
 #include "MessageQueue.h"
 #include "ClientMessages.h"
 #include "ClientGetMessages.h"
+#include "PlayerVsPlayer.h"
 #include "../Shared/ClientSrvCommons.h"
 #include "../Shared/MessageTools.h"
 
@@ -20,13 +21,7 @@
 
 //--> Global parameters
 SOCKET m_socket; // comuunication socket
-static my_username[MAX_LINE];
-static HANDLE logfile_mutex; //log file mutex
-HANDLE hThread[3]; // main threads
-int game_started = 0, exit_signal = 0, user_accepted = 0, play_accepted = 0;
 message_queue_t* msg_queue = NULL; // pointer to send message buffer
-
-CLIENT_STATE client_state = FIRST_CONNECTION;
 
 int HandleClientRequest(char* username, SOCKET socket);
 int GetMainMenuMessage(SOCKET socket);
@@ -37,183 +32,8 @@ MOVE_TYPE ParsePlayerMove(const char* player_move);
 int GetPlayerMoveRequestMessage(SOCKET socket);
 void ShowGameResults(game_results_t* game_results);
 GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice();
-int PlayerVsPlayer(SOCKET socket);
 int ViewLeaderBoard(SOCKET socket);
-
-//Reading data coming from the server Thread
-static DWORD RecvDataThread(LPVOID lpParam)
-{
-	TransferResult_t receive_result;
-	char* accepted_string = NULL;
-	message_t* message = NULL;
-	int board[BOARD_HEIGHT][BOARD_WIDTH] = { 0 }, type = 0;
-	char input[MAX_LINE], *send_message = NULL;
-	client_thread_params_t *info = NULL;
-	DWORD wait_code;
-	BOOL release_res;
-
-	info = (client_thread_params_t*)lpParam;
-
-	message = (message_t*)malloc(sizeof(message_t));
-
-	while (1)
-	{
-		accepted_string = NULL;
-		receive_result = ReceiveString(&accepted_string, m_socket);
-
-		if (receive_result == TRNS_FAILED) 
-		{ 
-			// if the server disconnected
-			printf("server disconnected. exiting.\n");
-
-			thread_terminator("clean"); // exit the programm with error
-			return 0;
-		}
-		else if (receive_result == TRNS_DISCONNECTED) 
-		{
-			printf("Server disconnected. Exiting.\n");// If the server disconnected
-			return 0;
-		}
-		else
-		{
-			printf("Received a message from the server: %s\n", accepted_string);
-
-			// Check the received message
-			GetMessageStruct(message, accepted_string);
-
-			if (STRINGS_ARE_EQUAL("SERVER_APPROVED", message->message_type))
-			{
-				client_state = SERVER_APPROVED;
-			}
-			else if (STRINGS_ARE_EQUAL("SERVER_MAIN_MENU", message->message_type))
-			{
-				client_state = MAIN_MENU;
-			}
-			else if (STRINGS_ARE_EQUAL("SERVER_PLAYER_MOVE_REQUEST", message->message_type))
-			{
-				client_state = PLAY_MOVE;
-			}
-		}
-	//	else { // We recived a new message
-	//		MessageEval(message, AcceptedStr); // Deconstructing the message (AcceptedStr)
-	//		//---> Writing to logfile
-	//		//PrintToLogFile(info->LogFile_ptr, "Received from server", AcceptedStr);
-
-	//		if (game_started == 0) {// Game NOT Started!
-	//			if (STRINGS_ARE_EQUAL("GAME_STARTED", message->message_type)) {
-	//				printf("Game is on!\n");
-	//				game_started = 1;
-	//			}
-	//			if (STRINGS_ARE_EQUAL("NEW_USER_DECLINED", message->message_type)) {
-	//				printf("Request to join was refused\n");
-	//				exit_signal = 1;
-	//				thread_terminator("clean"); // exit the programm with error
-	//				return 0;
-	//			}
-	//			if (STRINGS_ARE_EQUAL("NEW_USER_ACCEPTED", message->message_type)) {
-	//				printf("Username accepted\n");
-	//				printf("Number of players: %s\n", message->parameters->parameter);
-	//				user_accepted = 1;
-	//			}
-	//		}
-	//		else { // Game Started!
-	//			if (STRINGS_ARE_EQUAL("BOARD_VIEW", message->message_type)) {
-	//				if (message->parameters->next != NULL) { // If we got board update
-	//					if (STRINGS_ARE_EQUAL("RED", message->parameters->next->next->parameter)) // Checking the player who uptated the board
-	//						board[atoi(message->parameters->parameter)][atoi(message->parameters->next->parameter)] = RED_PLAYER; // Updating the board with RED
-	//					if (STRINGS_ARE_EQUAL("YELLOW", message->parameters->next->next->parameter)) // Checking the player who uptated the board
-	//						board[atoi(message->parameters->parameter)][atoi(message->parameters->next->parameter)] = YELLOW_PLAYER; // Updating the board with YELLOW
-	//				}
-	//				PrintBoard(board);
-	//			}
-	//			if (STRINGS_ARE_EQUAL("TURN_SWITCH", message->message_type)) {
-	//				printf("%s's turn\n", message->parameters->parameter);
-	//				if (STRINGS_ARE_EQUAL(message->parameters->parameter, my_username)) { // If it is MY TURN
-	//					//---> file mode option
-	//					if (STRINGS_ARE_EQUAL(info->input_mode, "file")) { // If we are in file mode
-	//						type = 0; //Reseting type
-	//						while (type != 1) { //While we didn't read from file play message
-	//							fgets(input, MAX_LINE, info->InputFile_ptr); //Reading a string from file
-	//							if (STRINGS_ARE_EQUAL(input, "\n")) // If we read a blank line
-	//								continue;
-	//							printf("%s", input);
-	//							type = MessageType(input); // Checking the type of the input (play or message)
-
-	//							//----> Play input
-	//							if (type == 1) {
-	//								send_message = ConstructMessage(input, "play"); //Constructing the message to send to the server
-	//								//-> send play to send buffer
-	//								EnqueueMsg(msg_queue, send_message);
-	//							}
-	//							//----> Exit input
-	//							if (STRINGS_ARE_EQUAL(input, "exit\n") || STRINGS_ARE_EQUAL(input, "exit")) {
-	//								//-> send exit to send buffer
-	//								EnqueueMsg(msg_queue, send_message);
-
-	//								//---> Writing to logfile
-	//								PrintToLogFile(info->LogFile_ptr, "Custom message", "Player entered exit input...");
-
-	//								thread_terminator("clean"); // exit the programm with error
-	//								return 0; // Exit the while loop
-	//							}
-	//							//----> Message input
-	//							if (type == 2) {
-	//								send_message = ConstructMessage(input, "message"); //Constructing the message to send to the server
-	//								//-> send play to send buffer
-	//								EnqueueMsg(msg_queue, send_message);
-	//							}
-	//							//---> Writing to logfile
-	//							if (STRINGS_ARE_EQUAL("Error: Illegal command", send_message))
-	//								PrintToLogFile(info->LogFile_ptr, "Custom message", send_message);
-	//							else
-	//								PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message);
-	//						}
-	//					}
-	//				}
-	//			}
-	//			if (STRINGS_ARE_EQUAL("PLAY_ACCEPTED", message->message_type)) {
-	//				printf("Well played\n");
-	//				play_accepted = 1;
-	//			}
-	//			if (STRINGS_ARE_EQUAL("PLAY_DECLINED", message->message_type)) {
-	//				printf("Error: ");
-	//				while (message->parameters->parameter != NULL) {
-	//					printf("%s", message->parameters->parameter);
-	//					message->parameters = message->parameters->next;
-	//				}
-	//				printf("\n");
-	//				play_accepted = 0;
-	//			}
-	//			if (STRINGS_ARE_EQUAL("GAME_ENDED", message->message_type)) {
-	//				if (STRINGS_ARE_EQUAL(message->parameters->parameter, "tied")) // We got tie
-	//					printf("Game ended. Everybody wins!\n");
-	//				else
-	//					printf("Game ended. The winner is %s!\n", message->parameters->parameter); //Print the winner name
-	//				exit_signal = 1;
-
-	//				//---> Writing to logfile
-	//				PrintToLogFile(info->LogFile_ptr, "Received from server", AcceptedStr);
-	//				PrintToLogFile(info->LogFile_ptr, "Custom message", "Game ended. Exiting...");
-
-	//				thread_terminator("clean"); // Clean exit the programm
-	//				return 0; // Exit the while loop
-	//			}
-	//			if (STRINGS_ARE_EQUAL("RECEIVE_MESSAGE", message->message_type)) {
-	//				printf("%s: ", message->parameters->parameter);
-	//				message->parameters = message->parameters->next;
-	//				while (message->parameters->parameter != NULL) {
-	//					printf("%s", message->parameters->parameter);
-	//					message->parameters = message->parameters->next;
-	//				}
-	//				printf("\n");
-	//			}
-	//		}
-	//	}
-	//	//free(send_message);
-	}
-	//free(message);
-	return 0;
-}
+int HandleConnection(char* server_ip, int port_number, char* username);
 
 //Sending data to the server Thread
 static DWORD SendDataThread(void)
@@ -286,30 +106,20 @@ static DWORD ApplicationThread(LPVOID lpParam)
 					return exit_code;
 			break;
 			case CLIENT_VERSUS:
-				//client_state = WAITING_TO_START_GAME;
-				exit_code = PlayerVsPlayer(thread_params->socket);
+				exit_code = PlayerVsPlayer(thread_params->socket, msg_queue);
 				if (exit_code != CLIENT_SUCCESS)
 				{
 					return exit_code;
 				}
-				/*exit_code = SendClientVersusMessage(msg_queue);
-				if (exit_code != MSG_SUCCESS)
-					return exit_code;
-
-				exit_code = Play(thread_params->socket);
-				if (exit_code != CLIENT_SUCCESS)
-					return exit_code;*/
 				break;
 
 			case LEADERBOARD:
-				//client_state = WAITING_TO_START_GAME;
-				exit_code = SendClientLeaderBoardMessage(msg_queue);
-				if (exit_code != MSG_SUCCESS)
-					return exit_code;
-
-				exit_code = ViewLeaderBoard(thread_params->socket);
-				if (exit_code != CLIENT_SUCCESS)
-					return exit_code;
+				printf("Sorry, this option is not currently supported.\n");
+				exit_code = SendLeaderboardMessage(msg_queue);
+				if (exit_code != QUEUE_SUCCESS)
+				{
+					return CLIENT_TRNS_FAILED;
+				}
 				break;
 
 			case QUIT:
@@ -327,98 +137,6 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				break;
 		}
 	}
-
-	//while (1)
-	//{
-	//	switch (client_state)
-	//	{
-	//		case FIRST_CONNECTION:
-	//			// Send CLIENT_REQUEST message with username to server
-	//			client_state = WAITING_SERVER_APPROVAL;
-	//			exit_code = SendClientRequestMessage(thread_params->username, msg_queue);
-	//			if (exit_code != QUEUE_SUCCESS)
-	//			{
-	//				return CLIENT_SEND_MSG_FAILED;
-	//			}
-	//			break;
-	//		case SERVER_APPROVED:
-	//			//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
-	//			break;
-	//		case MAIN_MENU:
-	//			PrintMainMenu();
-	//			scanf_s("%d", &user_choice);
-	//			switch (user_choice)
-	//			{
-	//				case CLIENT_CPU:
-	//					client_state = WAITING_TO_START_GAME;
-	//					SendClientCPUMessage(msg_queue);
-	//					break;
-	//				default:
-	//					break;
-	//			}
-	//			break;
-	//		case PLAY_MOVE:
-	//			PlayMove();
-	//			break;
-	//		default:
-	//			break;
-	//	}
-		
-		//if ((game_started == 0) && (user_accepted == 0) && (run == 0)) // Username input for user
-		//{
-		//	//run++;
-		//	//strcpy(my_username, input); //Saving my username
-		//	//send_message = ConstructMessage(input, "username"); //Constructing the message to send to the server
-		//	////----->sending to buffer
-		//	//EnqueueMsg(msg_queue, send_message);
-
-		//	////---> Writing to logfile
-		//	//PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message);
-
-		//}
-		//if ((game_started == 1) && (user_accepted == 1)) { //Game started!
-		//	if (STRINGS_ARE_EQUAL(info->input_mode, "human")) { // If we are in human mode
-		//		gets_s(input, sizeof(input)); //Reading a string from the keyboard
-
-		//		type = MessageType(input); // Checking the type of the input (play or message)
-
-		//		//----> Play input
-		//		if (type == 1) {
-		//			send_message = ConstructMessage(input, "play"); //Constructing the message to send to the server
-		//			//-> send play to send buffer
-		//			EnqueueMsg(msg_queue, send_message);
-		//		}
-		//		//----> Exit input
-		//		else if (STRINGS_ARE_EQUAL(input, "exit")) {
-		//			//-> send exit to send buffer
-		//			EnqueueMsg(msg_queue, send_message);
-
-		//			//---> Writing to logfile
-		//			PrintToLogFile(info->LogFile_ptr, "Custom message", "Player entered exit input...");
-
-		//			thread_terminator("clean"); // Clean exit the programm
-		//			return 0;
-		//		}
-		//		//----> Message input
-		//		else if (type == 2) {
-		//			send_message = ConstructMessage(input, "message"); //Constructing the message to send to the server
-		//			//-> send play to send buffer
-		//			EnqueueMsg(msg_queue, send_message);
-		//		}
-		//		else {
-		//			printf("Error: Illegal command\n");
-		//			send_message = "Error: Illegal command";
-		//		}
-		//		//---> Writing to logfile
-		//		if (STRINGS_ARE_EQUAL("Error: Illegal command", send_message))
-		//			PrintToLogFile(info->LogFile_ptr, "Custom message: User input error", input);
-		//		else
-		//			PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message); //Writing to logfile
-
-		//	}
-		//}
-		//free(send_message);
-	//}
 	return CLIENT_SUCCESS;
 }
 
@@ -513,51 +231,6 @@ int translatePlayerMove(char* move)
 		return PAPER;
 	}
 }
-int computeWinner(int first_player_move, int  sec_player_move)
-{
-	//tie//
-	if (first_player_move = sec_player_move)
-		return 0;
-
-	else if (first_player_move == ROCK)
-	{
-		if ((sec_player_move == SCISSORS) || (sec_player_move == LIZARD))
-			return 1;
-		else return 2;
-	}
-	else if (first_player_move == PAPER)
-	{
-		if ((sec_player_move == ROCK) || (sec_player_move == SPOCK))
-			return 1;
-		else return 2;
-	}
-
-	else if (first_player_move == SCISSORS)
-	{
-		if ((sec_player_move == PAPER) || (sec_player_move == LIZARD))
-			return 1;
-		else return 2;
-	}
-
-	else if (first_player_move == LIZARD)
-	{
-		if ((sec_player_move == PAPER) || (sec_player_move == SPOCK))
-			return 1;
-		else return 2;
-	}
-
-	else if (first_player_move == SPOCK)
-	{
-		if ((sec_player_move == ROCK) || (sec_player_move == SCISSORS))
-			return 1;
-		else return 2;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
 
 int Play(SOCKET socket)
 {
@@ -622,58 +295,6 @@ int Play(SOCKET socket)
 		}
 	}
 }
-
-
-//The function gets file pointer to logfile, format char: Received from server/Send to server, and the message itself, and write it to logfile
-void WriteToLogFile(FILE *ptr, char *format, char *message) {
-	DWORD wait_code;
-	BOOL release_res;
-
-	wait_code = WaitForSingleObject(logfile_mutex, INFINITE);
-	if (wait_code != WAIT_OBJECT_0) printf("Fail while waiting for logfile mutex");
-
-	//critical region
-	fprintf(ptr, "%s: %s\n", format, message); //Writing to logfile
-	//end of critical region
-
-	release_res = ReleaseMutex(logfile_mutex);
-	if (release_res == FALSE) printf("Fail releasing logfile mutex");
-}
-
-int PlayerVsPlayer(SOCKET socket)
-{
-	int exit_code;
-	BOOL start_game = FALSE;
-	char* oponent_name;
-
-	exit_code = SendClientVersusMessage(msg_queue);
-	if (exit_code != MSG_SUCCESS)
-		return CLIENT_TRNS_FAILED;
-
-	exit_code = GetStartGameMessage(&start_game, &oponent_name, socket);
-	if (exit_code != CLIENT_SUCCESS)
-	{
-		return exit_code;
-	}
-
-	if (!start_game)
-	{
-		printf("No oponents.\n");
-	}
-	else
-	{
-		printf("Starting play vs %s", oponent_name);
-		exit_code = Play(socket);
-		if (exit_code != CLIENT_SUCCESS)
-		{
-			return exit_code;
-		}
-	}
-
-	return CLIENT_SUCCESS;
-}
-
-
 
 int ViewLeaderBoard(SOCKET socket)
 {
@@ -758,7 +379,6 @@ int ViewLeaderBoard(SOCKET socket)
 		}
 	}
 }
-
 
 int GetLeaderBoardMessage(SOCKET socket)
 {
@@ -848,7 +468,6 @@ GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice()
 	return user_choice;
 }
 
-
 GAME_OVER_MENU_OPTIONS ShowLeaderBoardMenuMessage()
 {
 	GAME_OVER_MENU_OPTIONS user_choice;
@@ -901,21 +520,6 @@ int MainClient(char* server_ip, int port_number, char* username)
 		printf("Error initializing the message queue.\n");
 		return CLIENT_MSG_QUEUE_INIT_FAILED;
 	}
-
-	// Start the Send Data thread
-	hThread[0] = CreateThread(
-		NULL,
-		0,
-		(LPTHREAD_START_ROUTINE)SendDataThread,
-		NULL,
-		0,
-		NULL
-	);
-	if (hThread[0] == NULL)
-	{
-		// TODO: Free message queue
-		return CLIENT_THREAD_CREATION_FAILED;
-	}
 	
 	startup_result = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (startup_result != NO_ERROR)
@@ -925,83 +529,12 @@ int MainClient(char* server_ip, int port_number, char* username)
 		return CLIENT_WSA_STARTUP_ERROR;
 	}
 
-	m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (m_socket == INVALID_SOCKET) {
-		printf("Error at socket(): %ld\n", WSAGetLastError());
-		WSACleanup();
-		return CLIENT_SOCKET_CREATION_FAILED;
-	}
-
-	client_service.sin_family = AF_INET;
-	client_service.sin_addr.s_addr = inet_addr(server_ip);
-	client_service.sin_port = htons(port_number);
-
-	// Connection to server
-	while (TRUE)
-	{
-		connect_result = connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service));
-		if (connect_result == SOCKET_ERROR)
-		{
-			printf("Failed connected to server on %s:%d\n", server_ip, port_number);
-			printf("Choose what to do next:\n");
-			printf("1.	Try to reconnect\n");
-			printf("2.	Exit\n");
-			
-			scanf_s("%d", &user_choice);
-			if (user_choice == OPT_EXIT)
-			{
-				// TODO: Cleanup
-				return CLIENT_SUCCESS; // User chose to exit
-			}
-		}
-		else
-		{
-			printf("Connected to server on %s:%d\n", server_ip, port_number);
-			break;
-		}
-	}
-	//if (connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service)) == SOCKET_ERROR) 
-	//{
-	//	printf("Failed connecting to server on %s:%d. Exiting\n", server_ip, port_number);
-	//	WSACleanup();
-	//	exit(0x555);
-	//}
-	//else
-	//	//printf("Connected to server on %s:%s\n", SERVER_ADDRESS_STR, port_number);
-
-	thread_params.username = username;
-	thread_params.server_ip = server_ip;
-	thread_params.server_port = port_number;
-	thread_params.socket = m_socket;
-	
-	/*hThread[1] = CreateThread(
-		NULL,
-		0,
-		(LPTHREAD_START_ROUTINE)RecvDataThread,
-		(LPVOID)&thread_params,
-		0,
-		NULL
-	);*/
-	hThread[1] = CreateThread(
-		NULL,
-		0,
-		(LPTHREAD_START_ROUTINE)ApplicationThread,
-		(LPVOID)&thread_params,
-		0,
-		NULL
-	);
-
-	WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
-
-	GetExitCodeThread(hThread[0], &exit_code); // Getting the error code from threads
+	exit_code = HandleConnection(server_ip, port_number, username);
 
 	//---> Closing handles and free memory
 
 	CloseHandle(hThread[0]); // SendDataThread
-	CloseHandle(hThread[1]); // RecvDataThread
-	//CloseHandle(hThread[2]); // ApplicationThread
-
-	closesocket(m_socket); // Close socket
+	CloseHandle(hThread[1]); // ApplicationThread
 
 	WSACleanup();
 
@@ -1011,24 +544,117 @@ int MainClient(char* server_ip, int port_number, char* username)
 	CloseHandle(msg_queue->stop_event); // Message queue stop_event
 	free(msg_queue); // Free Message queue
 
-	if (exit_code == 0) // The programm ended clean
-		return 0;
-	else // The programm got an error
-		return 0x555;
+	return exit_code;
 }
 
-//The function terminats all threads. For type "clean" -> termination with code 0, and returns 0. For type "dirty" -> termination with code 0x555, and returns 0x555.
-void thread_terminator(char *type) {
+int HandleConnection(char* server_ip, int port_number, char* username)
+{
+	int exit_code;
+	SOCKADDR_IN client_service;
+	HANDLE hThread[2];
+	int connect_result;
+	SERVER_CONNECT_MENU_OPTIONS user_choice;
 
-	if (STRINGS_ARE_EQUAL(type, "clean")) {
-		TerminateThread(hThread[0], 0);
-		TerminateThread(hThread[1], 0);
-		TerminateThread(hThread[2], 0);
-	}
-	if (STRINGS_ARE_EQUAL(type, "dirty")) {
-		TerminateThread(hThread[0], 0x555);
-		TerminateThread(hThread[1], 0x555);
-		TerminateThread(hThread[2], 0x555);
+	client_thread_params_t thread_params;
+
+	while (TRUE)
+	{
+		m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		if (m_socket == INVALID_SOCKET) {
+			printf("Error at socket(): %ld\n", WSAGetLastError());
+			WSACleanup();
+			return CLIENT_SOCKET_CREATION_FAILED;
+		}
+
+		client_service.sin_family = AF_INET;
+		client_service.sin_addr.s_addr = inet_addr(server_ip);
+		client_service.sin_port = htons(port_number);
+
+		// Connection to server
+		while (TRUE)
+		{
+			connect_result = connect(m_socket, (SOCKADDR*)&client_service, sizeof(client_service));
+			if (connect_result == SOCKET_ERROR)
+			{
+				printf("Failed connecting to server on %s:%d\n", server_ip, port_number);
+				printf("Choose what to do next:\n");
+				printf("1.	Try to reconnect\n");
+				printf("2.	Exit\n");
+
+				scanf_s("%d", &user_choice);
+				if (user_choice == OPT_EXIT)
+				{
+					// TODO: Cleanup
+					return CLIENT_SUCCESS; // User chose to exit
+				}
+			}
+			else
+			{
+				printf("Connected to server on %s:%d\n", server_ip, port_number);
+				break;
+			}
+		}
+
+		thread_params.username = username;
+		thread_params.server_ip = server_ip;
+		thread_params.server_port = port_number;
+		thread_params.socket = m_socket;
+
+		// Start the Send Data thread
+		hThread[0] = CreateThread(
+			NULL,
+			0,
+			(LPTHREAD_START_ROUTINE)SendDataThread,
+			NULL,
+			0,
+			NULL
+		);
+		if (hThread[0] == NULL)
+		{
+			// TODO: Free message queue
+			return CLIENT_THREAD_CREATION_FAILED;
+		}
+
+		hThread[1] = CreateThread(
+			NULL,
+			0,
+			(LPTHREAD_START_ROUTINE)ApplicationThread,
+			(LPVOID)&thread_params,
+			0,
+			NULL
+		);
+
+		WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
+
+		GetExitCodeThread(hThread[0], &exit_code); // Getting the error code from the application thread
+		if (exit_code == CLIENT_SERVER_DENIED)
+		{
+			closesocket(m_socket);
+
+			printf("Server on %s:%d denied the connection request.\n", server_ip, port_number);
+		}
+		else if (exit_code == CLIENT_TRNS_FAILED)
+		{
+			closesocket(m_socket);
+
+			printf("Connection to server on %s:%d has been lost.\n", server_ip, port_number);
+		}
+		else
+		{
+			closesocket(m_socket);
+			return exit_code;
+		}
+
+		printf("Choose what to do next:\n");
+		printf("1.	Try to reconnect\n");
+		printf("2.	Exit\n");
+
+		scanf_s("%d", &user_choice);
+		if (user_choice == OPT_EXIT)
+		{
+			// TODO: Cleanup
+			return CLIENT_SUCCESS; // User chose to exit
+		}
 	}
 }
 
