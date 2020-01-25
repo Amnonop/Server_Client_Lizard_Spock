@@ -294,7 +294,7 @@ static DWORD HandleConnectionsThread()
 		if (accept_socket == INVALID_SOCKET)
 		{
 			printf("Accepting connection with client failed: %ld\n", WSAGetLastError());
-			// Clenup
+			closesocket(server_socket);
 			return SERVER_ACCEPT_CONNECTION_FAILED;
 		}
 
@@ -352,11 +352,11 @@ static DWORD CheckExitThread(void)
 {
 	int exit_code = SERVER_SUCCESS;
 	int wait_result;
-	char* command_str = NULL;
+	char command_str[5];
 
 	while (TRUE)
 	{
-		scanf_s("%s", 4, command_str);
+		scanf_s("%s", command_str, (rsize_t)sizeof command_str);
 		if (STRINGS_ARE_EQUAL(command_str, "exit"))
 		{
 			// Set exit event
