@@ -50,6 +50,8 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 int UpdatePlayerMove(const char* game_session_path, const char* username, MOVE_TYPE move, HANDLE write_event);
 int GetOponentMove(const char* game_session_path, const char* opponent_name, MOVE_TYPE* opponent_move, HANDLE write_event);
 int HandleGameOver(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice);
+int CheckGameOver(BOOL session_owner, int opponent_id, BOOL* game_over, GAME_OVER_MENU_OPTIONS user_choice);
+int HandleGameSession(client_info_t* client, int opponent_id);
 
 int RunServer(int port_number)
 {
@@ -459,7 +461,7 @@ int PlayerVersusPlayer(client_info_t* client)
 	}
 	else
 	{
-		
+		return HandleGameSession(client, oponent_id);
 	}
 }
 
@@ -502,60 +504,20 @@ int HandleGameSession(client_info_t* client, int opponent_id)
 			return exit_code;
 		}
 
-		exit_code = HandleGameOver(client->socket, &user_choice);
+		exit_code = HandleGameOver(client, &user_choice);
 		if (exit_code != SERVER_SUCCESS)
 		{
 			return exit_code;
 		}
 
-		if (session_owner)
+		exit_code = CheckGameOver(session_owner, opponent_id, &end_game, user_choice);
+		if (exit_code != SERVER_SUCCESS)
 		{
-			if (!SetEvent(opponent_choice_event))
-			{
-				printf("SetEvent failed (%d)\n", GetLastError());
-				return SERVER_SET_EVENT_FAILED;
-			}
-
-			// Wait for opponent's choice
-			printf("Waiting for %s to choose...\n", connected_clients[opponent_id]->userinfo);
-			wait_result = WaitForSingleObject(opponent_choice_event, INFINITE);
-			if (wait_result != WAIT_OBJECT_0)
-			{
-				return SERVER_WAIT_FOR_EVENT_FAILED;
-			}
-
-			opponent_state = connected_clients[opponent_id]->state;
-		}
-		else
-		{
-			// Wait for opponent's choice
-			printf("Waiting for %s to choose...\n", connected_clients[opponent_id]->userinfo);
-			wait_result = WaitForSingleObject(opponent_choice_event, INFINITE);
-			if (wait_result != WAIT_OBJECT_0)
-			{
-				return SERVER_WAIT_FOR_EVENT_FAILED;
-			}
-
-			// Check opponent's choice
-			opponent_state = connected_clients[opponent_id]->state;
-
-			if (!SetEvent(opponent_choice_event))
-			{
-				printf("SetEvent failed (%d)\n", GetLastError());
-				return SERVER_SET_EVENT_FAILED;
-			}
-		}
-
-		if (opponent_state == STATE_VERSUS)
-		{
-			// Restart the session
-		}
-		else
-		{
-			// Send opponent quit
-			// Go to main menu
+			return exit_code;
 		}
 	}
+
+	printf("GAME OVER.\n");
 }
 
 int HandleGameOver(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice)
@@ -582,7 +544,7 @@ int HandleGameOver(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice)
 	return exit_code;
 }
 
-int CheckGameOver(BOOL session_owner, int opponent_id, BOOL* game_over)
+int CheckGameOver(BOOL session_owner, int opponent_id, BOOL* game_over, GAME_OVER_MENU_OPTIONS user_choice)
 {
 	int exit_code;
 	DWORD wait_result;
@@ -626,15 +588,24 @@ int CheckGameOver(BOOL session_owner, int opponent_id, BOOL* game_over)
 		}
 	}
 
-	if (opponent_state == STATE_VERSUS)
+	if (user_choice == OPT_REPLAY)
 	{
-		*game_over = FALSE;
+		if (opponent_state == STATE_VERSUS)
+		{
+			*game_over = FALSE;
+		}
+		else
+		{
+			// Send opponent quit
+			// Go to main menu
+		}
 	}
 	else
 	{
-		// Send opponent quit
-		// Go to main menu
+		*game_over = TRUE;
 	}
+
+	return SERVER_SUCCESS;
 }
 
 int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* opponent_name)
@@ -659,6 +630,7 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 	// TODO: Write move to file and signal write event
 	if (is_session_owner)
 	{
+		printf("%s is the session owner.\n", client->userinfo);
 		exit_code = UpdatePlayerMove(GAME_SESSION_FILENAME, client->userinfo, player_move, game_session_write_event);
 		if (exit_code != SERVER_SUCCESS)
 		{
@@ -686,6 +658,8 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 			return exit_code;
 		}
 	}
+
+	printf("%s played %d\n", opponent_name, opponent_move);
 
 	// Send SERVER_GAME_RESULTS
 	winner = CheckWinner(player_move, opponent_move);

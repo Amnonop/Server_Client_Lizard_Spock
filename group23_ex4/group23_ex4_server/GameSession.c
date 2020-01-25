@@ -8,11 +8,11 @@ int OpenNewFile(const char* path)
 	FILE* file;
 
 	// Check if the file exists
-	file = fopen_s(&file, path, "r");
+	fopen_s(&file, path, "r");
 	if (file == NULL)
 	{
 		// Open the file
-		file = fopen_s(&file, path, "w");
+		fopen_s(&file, path, "w");
 		if (file == NULL)
 		{
 			return SERVER_FILE_OPEN_FAILED;
@@ -42,7 +42,7 @@ int WriteMoveToGameSession(const char* game_session_path, MOVE_TYPE move, const 
 	char* move_string;
 
 	// Check if the file exists
-	file = fopen_s(&file, game_session_path, "a");
+	fopen_s(&file, game_session_path, "a");
 	if (file == NULL)
 	{
 		return SERVER_FILE_OPEN_FAILED;
@@ -65,7 +65,7 @@ int ReadOponnentMoveFromGameSession(const char* game_session_path, const char* o
 	char* next_token;
 
 	// Check if the file exists
-	file = fopen_s(&file, game_session_path, "a");
+	fopen_s(&file, game_session_path, "a");
 	if (file == NULL)
 	{
 		return SERVER_FILE_OPEN_FAILED;

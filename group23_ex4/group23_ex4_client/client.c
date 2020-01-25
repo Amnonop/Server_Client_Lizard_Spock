@@ -663,6 +663,11 @@ int PlayerVsPlayer(SOCKET socket)
 	else
 	{
 		printf("Starting play vs %s", oponent_name);
+		exit_code = Play(socket);
+		if (exit_code != CLIENT_SUCCESS)
+		{
+			return exit_code;
+		}
 	}
 
 	return CLIENT_SUCCESS;
