@@ -11,6 +11,7 @@
 #include "ServerGetMessages.h"
 #include "../Shared/socketS.h"
 #include <Windows.h>
+#include "GameSession.h"
 
 #define SERVER_ADDRESS_STR "127.0.0.1"
 #define NUM_OF_WORKER_THREADS 2
@@ -44,8 +45,10 @@ int SaveUsername(const char* username, client_info_t* client);
 int Play(client_info_t* client);
 int ClientDisconnected(int client_id);
 int FindOponent(int client_id);
-int OpenFile(const char* path);
 int OpenGameSession(HANDLE game_session_mutex);
+int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* oponent_name);
+int UpdatePlayerMove(const char* game_session_path, const char* username, MOVE_TYPE move, HANDLE write_event);
+int GetOponentMove(const char* game_session_path, const char* opponent_name, MOVE_TYPE* opponent_move, HANDLE write_event);
 
 int RunServer(int port_number)
 {
@@ -507,11 +510,11 @@ int PlayerVersusPlayer(client_info_t* client)
 	}
 }
 
-int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, int oponent_id)
+int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* opponent_name)
 {
 	int exit_code;
 	MOVE_TYPE player_move = SPOCK;
-	MOVE_TYPE oponent_move = SPOCK;
+	MOVE_TYPE opponent_move = SPOCK;
 	int winner;
 	DWORD wait_result;
 
@@ -529,21 +532,26 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, int oponent_i
 	// TODO: Write move to file and signal write event
 	if (is_session_owner)
 	{
-		exit_code = WriteMoveToGameSession(GAME_SESSION_FILENAME, player_move, client->userinfo);
-		if (!SetEvent(session_owner_write_event))
+		exit_code = UpdatePlayerMove(GAME_SESSION_FILENAME, client->userinfo, player_move, session_owner_write_event);
+		if (exit_code != SERVER_SUCCESS)
 		{
-			printf("SetEvent failed (%d)\n", GetLastError());
-			return SERVER_SET_EVENT_FAILED;
+			return exit_code;
 		}
 
-		printf("Session owner %d waiting for oponent's move...\n", client->client_id);
-		wait_result = WaitForSingleObject(oponent_write_event, INFINITE);
-		if (wait_result != WAIT_OBJECT_0)
+		exit_code = GetOponentMove(GAME_SESSION_FILENAME, opponent_name, &opponent_move, session_owner_write_event);
+		if (exit_code != SERVER_SUCCESS)
 		{
-			return SERVER_WAIT_FOR_EVENT_FAILED;
+			return exit_code;
 		}
-
-		printf("Session owner %d reading oponent's move...\n", client->client_id);
+	}
+	else
+	{
+		// We are not the session owner, so first we wait the read and then we write
+		exit_code = GetOponentMove(GAME_SESSION_FILENAME, opponent_name, &opponent_move, session_owner_write_event);
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
 	}
 	// TODO: Read move from file
 
@@ -559,6 +567,45 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, int oponent_i
 		return exit_code;
 }
 
+int UpdatePlayerMove(const char* game_session_path, const char* username, MOVE_TYPE move, HANDLE write_event)
+{
+	int exit_code;
+
+	exit_code = WriteMoveToGameSession(game_session_path, move, username);
+	if (exit_code != SERVER_SUCCESS)
+	{
+		return exit_code;
+	}
+
+	if (!SetEvent(write_event))
+	{
+		printf("SetEvent failed (%d)\n", GetLastError());
+		return SERVER_SET_EVENT_FAILED;
+	}
+
+	return SERVER_SUCCESS;
+}
+
+int GetOponentMove(const char* game_session_path, const char* opponent_name, MOVE_TYPE* opponent_move, HANDLE write_event)
+{
+	DWORD wait_result;
+	int exit_code;
+
+	printf("Waiting for %s to write move...\n", opponent_name);
+	wait_result = WaitForSingleObject(write_event, INFINITE);
+	if (wait_result != WAIT_OBJECT_0)
+	{
+		return SERVER_WAIT_FOR_EVENT_FAILED;
+	}
+
+	printf("Reading %s's move...\n", opponent_name);
+	exit_code = ReadOponnentMoveFromGameSession(GAME_SESSION_FILENAME, opponent_name, opponent_move);
+	if (exit_code != SERVER_SUCCESS)
+	{
+		return exit_code;
+	}
+}
+
 int OpenGameSession(HANDLE game_session_mutex)
 {
 	int exit_code;
@@ -571,7 +618,7 @@ int OpenGameSession(HANDLE game_session_mutex)
 	}
 
 	// Open game session
-	exit_code = OpenFile(GAME_SESSION_FILENAME);
+	exit_code = OpenNewFile(GAME_SESSION_FILENAME);
 
 	if (!ReleaseMutex(game_session_mutex))
 	{
@@ -579,87 +626,6 @@ int OpenGameSession(HANDLE game_session_mutex)
 	}
 
 	return exit_code;
-}
-
-int OpenFile(const char* path)
-{
-	FILE* file;
-
-	// Check if the file exists
-	file = fopen_s(&file, path, "r");
-	if (file == NULL)
-	{
-		// Open the file
-		file = fopen_s(&file, path, "w");
-		if (file == NULL)
-		{
-			return SERVER_FILE_OPEN_FAILED;
-		}
-
-		fclose(file);
-		return SERVER_SUCCESS;
-	}
-
-	fclose(file);
-	return SERVER_FILE_EXISTS;
-}
-
-int WriteMoveToGameSession(const char* game_session_path, MOVE_TYPE move, const char* username)
-{
-	FILE* file;
-	char* move_string;
-
-	// Check if the file exists
-	file = fopen_s(&file, game_session_path, "a");
-	if (file == NULL)
-	{
-		return SERVER_FILE_OPEN_FAILED;
-	}
-
-	move_string = MoveTypeToString(move);
-	fprintf_s(file, "%s:%s\n", username, move_string);
-
-	fclose(file);
-	return SERVER_SUCCESS;
-}
-
-int ReadOponnentMoveFromGameSession(const char* game_session_path, const char* oponnent_name, MOVE_TYPE* move)
-{
-	FILE* file;
-	char move_line[45];
-	const char* delimiter = ":";
-	char* move_line_copy;
-	char* token;
-	char* next_token;
-
-	// Check if the file exists
-	file = fopen_s(&file, game_session_path, "a");
-	if (file == NULL)
-	{
-		return SERVER_FILE_OPEN_FAILED;
-	}
-
-	while (fgets(move_line, sizeof(move_line), file) != NULL)
-	{
-		move_line_copy = CopyString(move_line);
-		if (move_line_copy == NULL)
-		{
-			fclose(file);
-			return SERVER_MEM_ALLOC_FAILED;
-		}
-
-		token = strtok_s(move_line_copy, delimiter, &next_token);
-		if (STRINGS_ARE_EQUAL(token, oponnent_name))
-		{
-			token = strtok_s(NULL, delimiter, &next_token);
-			*move = StringToMoveType(token);
-			free(move_line_copy);
-			break;
-		}
-	}
-
-	fclose(file);
-	return SERVER_SUCCESS;
 }
 
 int FindOponent(int client_id)
