@@ -15,7 +15,7 @@ typedef struct client_info
 
 typedef struct winners_list
 {
-	char* name[USERNAME_MAX_LENGTH];;
+	char* name[USERNAME_MAX_LENGTH];
 	int won;
 	int lost;
 	struct winners_list* next;

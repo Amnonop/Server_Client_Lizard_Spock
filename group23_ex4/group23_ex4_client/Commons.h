@@ -1,8 +1,6 @@
 #ifndef COMMONS_H
 #define COMMONS_H
 
-#define STRINGS_ARE_EQUAL( Str1, Str2 ) ( strcmp( (Str1), (Str2) ) == 0 )
-
 typedef enum
 {
 	CLIENT_SUCCESS,

@@ -38,6 +38,7 @@ int GetPlayerMoveRequestMessage(SOCKET socket);
 void ShowGameResults(game_results_t* game_results);
 GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice();
 int PlayerVsPlayer(SOCKET socket);
+int ViewLeaderBoard(SOCKET socket);
 
 //Reading data coming from the server Thread
 static DWORD RecvDataThread(LPVOID lpParam)
@@ -306,7 +307,7 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				if (exit_code != MSG_SUCCESS)
 					return exit_code;
 
-				exit_code = viewLeaderBoard(thread_params->socket);
+				exit_code = ViewLeaderBoard(thread_params->socket);
 				if (exit_code != CLIENT_SUCCESS)
 					return exit_code;
 				break;
@@ -669,7 +670,7 @@ int PlayerVsPlayer(SOCKET socket)
 
 
 
-ViewLeaderBoard(SOCKET socket)
+int ViewLeaderBoard(SOCKET socket)
 {
 	int exit_code;
 	char user_move[9];
@@ -677,7 +678,7 @@ ViewLeaderBoard(SOCKET socket)
 	game_results_t* game_results = NULL;
 	GAME_OVER_MENU_OPTIONS user_choice;
 	BOOL game_over = FALSE;
-	const char* board_headline = "Name \t Won \t Lost \t W/L Ratio"
+	const char* board_headline = "Name \t Won \t Lost \t W/L Ratio";
 
 	while (!game_over)
 	{

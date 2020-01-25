@@ -118,6 +118,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Shared\ClientSrvCommons.c" />
     <ClCompile Include="..\Shared\MessageTools.c" />
     <ClCompile Include="..\Shared\socketSendReceive.c" />
     <ClCompile Include="..\Shared\StringTools.c" />
