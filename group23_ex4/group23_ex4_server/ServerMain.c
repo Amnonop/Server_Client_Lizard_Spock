@@ -31,6 +31,8 @@ TransferResult_t SendRes;
 HANDLE game_session_mutex;
 HANDLE session_owner_write_event;
 HANDLE oponent_write_event;
+HANDLE read_log_file_semaphore_handles;
+HANDLE write_log_file_mutex_handle;
 
 int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
@@ -478,6 +480,29 @@ int PlayerVersusPlayer(client_info_t* client)
 		else
 		{
 			return exit_code;
+		}
+		write_log_file_mutex_handle = CreateMutex(
+			NULL,
+			FALSE,
+			"log_file_mutex_handle");
+		if (write_log_file_mutex_handle == NULL)
+		{
+			CloseHandle(write_log_file_mutex_handle);
+			printf("Error writing to log file\n");
+				
+			//return HM_MUTEX_CREATE_FAILED;
+		}
+
+		read_log_file_semaphore_handles = CreateSemaphore(
+			NULL,												/* Default security attributes */
+			0,			/* Initial Count - the room is empty */
+			1,			/* Maximum Count */
+			NULL);												/* un-named */
+
+		if (read_log_file_semaphore_handles == NULL)
+		{
+			CloseHandle(read_log_file_semaphore_handles);
+			printf("Error reading log file\n");
 		}
 	}
 }
