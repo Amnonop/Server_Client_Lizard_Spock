@@ -31,6 +31,7 @@ client_params_t client_params[CLIENTS_MAX_NUM];
 TransferResult_t SendRes;
 HANDLE game_session_mutex;
 HANDLE game_session_write_event;
+HANDLE opponent_write_event;
 HANDLE opponent_choice_event;
 HANDLE read_log_file_semaphore_handles;
 HANDLE write_log_file_mutex_handle;
@@ -96,11 +97,26 @@ int RunServer(int port_number)
 		return SERVER_CREATE_EVENT_FAILED;
 	}
 
+	opponent_write_event = CreateEvent(
+		NULL,               // default security attributes
+		FALSE,               // manual-reset event
+		FALSE,              // initial state is nonsignaled
+		TEXT("opponent_write_event")  // object name
+	);
+	if (opponent_write_event == NULL)
+	{
+		if (!CloseHandle(game_session_mutex))
+		{
+
+		}
+		return SERVER_CREATE_EVENT_FAILED;
+	}
+
 	opponent_choice_event = CreateEvent(
 		NULL,               // default security attributes
 		FALSE,               // manual-reset event
 		FALSE,              // initial state is nonsignaled
-		TEXT("session_owner_write_event")  // object name
+		TEXT("opponent_choice_event")  // object name
 	);
 	if (opponent_choice_event == NULL)
 	{
@@ -637,7 +653,7 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 			return exit_code;
 		}
 
-		exit_code = GetOponentMove(GAME_SESSION_FILENAME, opponent_name, &opponent_move, game_session_write_event);
+		exit_code = GetOponentMove(GAME_SESSION_FILENAME, opponent_name, &opponent_move, opponent_write_event);
 		if (exit_code != SERVER_SUCCESS)
 		{
 			return exit_code;
@@ -652,7 +668,7 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 			return exit_code;
 		}
 
-		exit_code = UpdatePlayerMove(GAME_SESSION_FILENAME, client->userinfo, player_move, game_session_write_event);
+		exit_code = UpdatePlayerMove(GAME_SESSION_FILENAME, client->userinfo, player_move, opponent_write_event);
 		if (exit_code != SERVER_SUCCESS)
 		{
 			return exit_code;

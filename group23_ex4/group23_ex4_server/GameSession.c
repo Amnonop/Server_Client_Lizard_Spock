@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <string.h>
 #include "GameSession.h"
 #include "Commons.h"
 #include "../Shared/ClientSrvCommons.h"
+#include "../Shared/StringTools.h"
 
 int OpenNewFile(const char* path)
 {
@@ -49,6 +51,7 @@ int WriteMoveToGameSession(const char* game_session_path, MOVE_TYPE move, const 
 	}
 
 	move_string = MoveTypeToString(move);
+	printf("Writing %s:%s to game session.\n", username, move_string);
 	fprintf_s(file, "%s:%s\n", username, move_string);
 
 	fclose(file);
@@ -60,12 +63,13 @@ int ReadOponnentMoveFromGameSession(const char* game_session_path, const char* o
 	FILE* file;
 	char move_line[45];
 	const char* delimiter = ":";
-	char* move_line_copy;
+	const char* end_line = "\n";
+	char* move_line_copy = NULL;
 	char* token;
 	char* next_token;
 
 	// Check if the file exists
-	fopen_s(&file, game_session_path, "a");
+	fopen_s(&file, game_session_path, "r");
 	if (file == NULL)
 	{
 		return SERVER_FILE_OPEN_FAILED;
@@ -73,6 +77,7 @@ int ReadOponnentMoveFromGameSession(const char* game_session_path, const char* o
 
 	while (fgets(move_line, sizeof(move_line), file) != NULL)
 	{
+		printf("Reading %s from game session.\n", move_line);
 		move_line_copy = CopyString(move_line);
 		if (move_line_copy == NULL)
 		{
@@ -83,7 +88,7 @@ int ReadOponnentMoveFromGameSession(const char* game_session_path, const char* o
 		token = strtok_s(move_line_copy, delimiter, &next_token);
 		if (STRINGS_ARE_EQUAL(token, oponnent_name))
 		{
-			token = strtok_s(NULL, delimiter, &next_token);
+			token = strtok_s(NULL, end_line, &next_token);
 			*move = StringToMoveType(token);
 			free(move_line_copy);
 			break;
