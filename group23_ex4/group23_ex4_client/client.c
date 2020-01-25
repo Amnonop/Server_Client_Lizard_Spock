@@ -622,6 +622,23 @@ int Play(SOCKET socket)
 	}
 }
 
+
+//The function gets file pointer to logfile, format char: Received from server/Send to server, and the message itself, and write it to logfile
+void WriteToLogFile(FILE *ptr, char *format, char *message) {
+	DWORD wait_code;
+	BOOL release_res;
+
+	wait_code = WaitForSingleObject(logfile_mutex, INFINITE);
+	if (wait_code != WAIT_OBJECT_0) printf("Fail while waiting for logfile mutex");
+
+	//critical region
+	fprintf(ptr, "%s: %s\n", format, message); //Writing to logfile
+	//end of critical region
+
+	release_res = ReleaseMutex(logfile_mutex);
+	if (release_res == FALSE) printf("Fail releasing logfile mutex");
+}
+
 int PlayerVsPlayer(SOCKET socket)
 {
 	int exit_code;
@@ -651,7 +668,8 @@ int PlayerVsPlayer(SOCKET socket)
 }
 
 
-viewLeaderBoard(SOCKET socket)
+
+ViewLeaderBoard(SOCKET socket)
 {
 	int exit_code;
 	char user_move[9];
@@ -659,6 +677,7 @@ viewLeaderBoard(SOCKET socket)
 	game_results_t* game_results = NULL;
 	GAME_OVER_MENU_OPTIONS user_choice;
 	BOOL game_over = FALSE;
+	const char* board_headline = "Name \t Won \t Lost \t W/L Ratio"
 
 	while (!game_over)
 	{
@@ -868,7 +887,8 @@ int MainClient(char* server_ip, int port_number, char* username)
 
 	// Initialize the message queue
 	msg_queue = CreateMessageQueue();
-	if (msg_queue == NULL) {
+	if (msg_queue == NULL) 
+	{
 		printf("Error initializing the message queue.\n");
 		return CLIENT_MSG_QUEUE_INIT_FAILED;
 	}
