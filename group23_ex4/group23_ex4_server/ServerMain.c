@@ -43,7 +43,6 @@ HANDLE exit_event;
 static DWORD HandleConnectionsThread(void);
 int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
-static DWORD ExitThread();
 MOVE_TYPE GetComputerMove();
 int AcceptPlayer(client_info_t* client);
 int CheckWinner(MOVE_TYPE player_a_move, MOVE_TYPE player_b_move);
