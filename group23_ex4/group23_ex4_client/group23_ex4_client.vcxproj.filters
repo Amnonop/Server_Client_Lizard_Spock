@@ -45,6 +45,9 @@
     <ClCompile Include="ClientGetMessages.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\Shared\ClientSrvCommons.c">
+      <Filter>Shared Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="client.h">

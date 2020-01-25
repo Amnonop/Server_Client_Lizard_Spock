@@ -153,27 +153,3 @@ int SendMessageWithoutParams(const char* message_name, SOCKET socket)
 	free(message_string);
 	return SERVER_SUCCESS;
 }
-
-char* MoveTypeToString(MOVE_TYPE move)
-{
-	switch (move)
-	{
-		case (ROCK):
-			return "ROCK";
-			break;
-		case (PAPER):
-			return "PAPER";
-			break;
-		case(SCISSORS):
-			return "SCISSORS";
-			break;
-		case (LIZARD):
-			return "LIZARD";
-			break;
-		case (SPOCK):
-			return "SPOCK";
-			break;
-		default:
-			break;
-	}
-}
