@@ -346,16 +346,21 @@ static DWORD ExitThread()
 	}
 	while (TRUE)
 	{
+		if (exit_code != SERVER_SUCCESS)
+		{
+			break;
+		}
+		//critical part - begin
 		wait_result = WaitForSingleObject(exit_session_mutex, INFINITE);
 		if (wait_result != WAIT_OBJECT_0)
 		{
 			return SERVER_ACQUIRE_MUTEX_FAILED;
 		}
-		//critical part - begin
+		
 		scanf_s("%s", 4, command_str);
 		if (STRINGS_ARE_EQUAL(command_str,"exit")==0)
 		{
-			server_exit = TRUE;
+			exit_code = SERVER_EXIT;
 		}
 		//critical part - end
 		if (!ReleaseMutex(exit_session_mutex))
@@ -363,7 +368,7 @@ static DWORD ExitThread()
 			return SERVER_MUTEX_RELEASE_FAILED;
 		}
 
-		return exit_code;
+		
 
 
 
