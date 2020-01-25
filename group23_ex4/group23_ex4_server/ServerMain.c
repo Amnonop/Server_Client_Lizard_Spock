@@ -36,10 +36,7 @@ HANDLE game_session_write_event;
 HANDLE opponent_write_event;
 HANDLE session_owner_choice_event;
 HANDLE opponent_choice_event;
-HANDLE read_log_file_semaphore_handles;
-HANDLE write_log_file_mutex_handle;
-HANDLE exit_session_mutex;
-BOOL server_exit = FALSE;
+HANDLE connected_clients_mutex;
 
 int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
@@ -85,6 +82,16 @@ int RunServer(int port_number)
 	if (game_session_mutex == NULL)
 	{
 		printf("Error creating Game Session Mutex.\n");
+		return SERVER_CREATE_MUTEX_FAILED;
+	}
+
+	connected_clients_mutex = CreateMutex(
+		NULL,	/* default security attributes */
+		FALSE,	/* initially not owned */
+		NULL);	/* unnamed mutex */
+	if (connected_clients_mutex == NULL)
+	{
+		printf("Error creating connected_clients_mutex.\n");
 		return SERVER_CREATE_MUTEX_FAILED;
 	}
 
@@ -392,28 +399,6 @@ int GetAvailableClientId()
 	return -1;
 }
 
-int translatePlayerMove(char* move)
-{
-	if ((move[0] == "s") || (move[0] == "S"))
-	{
-		if ((move[1] == "c") || (move[1] == "C"))
-			return SCISSORS;
-		else
-			return SPOCK;
-	}
-	else if ((move[0] == "l") || (move[0] == "L"))
-	{
-		return LIZARD;
-	}
-	else if ((move[0] == "r") || (move[0] == "R"))
-	{
-		return ROCK;
-	}
-	else if ((move[0] == "p") || (move[0] == "P"))
-	{
-		return PAPER;
-	}
-}
 int computeWinner(int first_player_move, int  sec_player_move)
 {
 	//tie//
@@ -484,31 +469,6 @@ static DWORD ClientThread(LPVOID thread_params)
 		{
 			return exit_code;
 		}
-		//// waiting for new message
-		//accepted_string = NULL;
-		//RecvRes = ReceiveString(&accepted_string, connected_clients[client_params->client_number].socket);
-		//if (RecvRes == TRNS_FAILED) {
-		//	printf("Player disconnected. Ending communication.\n");
-		//	//closesocket(players_sockets[player_number]);
-		//	//SetEvent(DiscconectThem);
-		//	return -1;
-		//}
-		//else if (RecvRes == TRNS_DISCONNECTED) {
-		//	printf("Player disconnected. Ending communication.\n");
-		//	//closesocket(players_sockets[player_number]);
-		//	//SetEvent(DiscconectThem);
-		//	return -1;
-		//}
-
-		//// breake message into message type and it's other parts
-		//printf("Received message: %s\n", accepted_string);
-		//GetMessageStruct(message, accepted_string);
-		//int move = GetComputerMove();
-		//if (STRINGS_ARE_EQUAL("CLIENT_CPU", message->message_type))
-		//{
-		//	int move = GetComputerMove();
-		//	SendServerMoveMessage(connected_clients[client_params->client_number].socket);
-		//}
 	}
 }
 
@@ -634,7 +594,7 @@ int HandleGameSession(client_info_t* client, int opponent_id, BOOL* end_game)
 		else
 		{
 			*end_game = TRUE;
-			exit_code = SendOpponentQuitMessage(connected_clients[opponent_id]->userinfo);
+			exit_code = SendOpponentQuitMessage(connected_clients[opponent_id]->userinfo, client->socket);
 			return exit_code;
 		}
 	}
