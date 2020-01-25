@@ -32,6 +32,7 @@ TransferResult_t SendRes;
 HANDLE game_session_mutex;
 HANDLE game_session_write_event;
 HANDLE opponent_write_event;
+HANDLE session_owner_choice_event;
 HANDLE opponent_choice_event;
 HANDLE read_log_file_semaphore_handles;
 HANDLE write_log_file_mutex_handle;
@@ -50,9 +51,9 @@ int OpenGameSession(HANDLE game_session_mutex);
 int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* oponent_name);
 int UpdatePlayerMove(const char* game_session_path, const char* username, MOVE_TYPE move, HANDLE write_event);
 int GetOponentMove(const char* game_session_path, const char* opponent_name, MOVE_TYPE* opponent_move, HANDLE write_event);
-int HandleGameOver(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice);
-int CheckGameOver(BOOL session_owner, int opponent_id, BOOL* game_over, GAME_OVER_MENU_OPTIONS user_choice);
-int HandleGameSession(client_info_t* client, int opponent_id);
+int GetGameOverUserChoice(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice);
+int HandleGameSession(client_info_t* client, int opponent_id, BOOL* end_game);
+int GetGameOverOpponentChoice(BOOL session_owner, int opponent_id, CLIENT_STATE* opponent_choice);
 
 int RunServer(int port_number)
 {
@@ -119,6 +120,27 @@ int RunServer(int port_number)
 		TEXT("opponent_choice_event")  // object name
 	);
 	if (opponent_choice_event == NULL)
+	{
+		if (!CloseHandle(game_session_mutex))
+		{
+
+		}
+
+		if (!CloseHandle(game_session_write_event))
+		{
+
+		}
+
+		return SERVER_CREATE_EVENT_FAILED;
+	}
+
+	session_owner_choice_event = CreateEvent(
+		NULL,               // default security attributes
+		FALSE,               // manual-reset event
+		FALSE,              // initial state is nonsignaled
+		TEXT("session_owner_choice_event")  // object name
+	);
+	if (session_owner_choice_event == NULL)
 	{
 		if (!CloseHandle(game_session_mutex))
 		{
@@ -467,8 +489,7 @@ int PlayerVersusPlayer(client_info_t* client)
 	GAME_OVER_MENU_OPTIONS user_choice = OPT_REPLAY;
 	CLIENT_STATE opponent_state = STATE_NONE;
 	int oponent_id = -1;
-	BOOL session_owner = FALSE;
-	DWORD wait_result;
+	BOOL end_game = FALSE;
 
 	oponent_id = FindOponent(client->client_id);
 	if (oponent_id == -1)
@@ -477,18 +498,24 @@ int PlayerVersusPlayer(client_info_t* client)
 	}
 	else
 	{
-		return HandleGameSession(client, oponent_id);
+		while (!end_game)
+		{
+			exit_code = HandleGameSession(client, oponent_id, &end_game);
+			if (exit_code != SERVER_SUCCESS)
+			{
+				return exit_code;
+			}
+		}
 	}
 }
 
-int HandleGameSession(client_info_t* client, int opponent_id)
+int HandleGameSession(client_info_t* client, int opponent_id, BOOL* end_game)
 {
 	int exit_code;
 	GAME_OVER_MENU_OPTIONS user_choice = OPT_REPLAY;
 	CLIENT_STATE opponent_state = STATE_NONE;
 	BOOL session_owner = FALSE;
 	DWORD wait_result;
-	BOOL end_game = FALSE;
 
 	// Send INVITE_SERVER
 	exit_code = SendServerInviteMessage(connected_clients[opponent_id]->userinfo, client->socket);
@@ -512,31 +539,45 @@ int HandleGameSession(client_info_t* client, int opponent_id)
 		return exit_code;
 	}
 
-	while (!end_game)
+	exit_code = PlayRoundVsPlayer(client, session_owner, connected_clients[opponent_id]->userinfo);
+	if (exit_code != SERVER_SUCCESS)
 	{
-		exit_code = PlayRoundVsPlayer(client, session_owner, connected_clients[opponent_id]->userinfo);
-		if (exit_code != SERVER_SUCCESS)
-		{
-			return exit_code;
-		}
-
-		exit_code = HandleGameOver(client, &user_choice);
-		if (exit_code != SERVER_SUCCESS)
-		{
-			return exit_code;
-		}
-
-		exit_code = CheckGameOver(session_owner, opponent_id, &end_game, user_choice);
-		if (exit_code != SERVER_SUCCESS)
-		{
-			return exit_code;
-		}
+		return exit_code;
 	}
 
-	printf("GAME OVER.\n");
+	exit_code = GetGameOverUserChoice(client, &user_choice);
+	if (exit_code != SERVER_SUCCESS)
+	{
+		return exit_code;
+	}
+
+	exit_code = GetGameOverOpponentChoice(session_owner, opponent_id, &opponent_state);
+	if (exit_code != SERVER_SUCCESS)
+	{
+		return exit_code;
+	}
+
+	if (user_choice == OPT_REPLAY)
+	{
+		if (opponent_state == STATE_VERSUS)
+		{
+			*end_game = FALSE;
+		}
+		else
+		{
+			*end_game = TRUE;
+			// Send opponent quit
+		}
+	}
+	else
+	{
+		*end_game = TRUE;
+	}
+
+	return SERVER_SUCCESS;
 }
 
-int HandleGameOver(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice)
+int GetGameOverUserChoice(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice)
 {
 	int exit_code;
 
@@ -560,15 +601,13 @@ int HandleGameOver(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice)
 	return exit_code;
 }
 
-int CheckGameOver(BOOL session_owner, int opponent_id, BOOL* game_over, GAME_OVER_MENU_OPTIONS user_choice)
+int GetGameOverOpponentChoice(BOOL session_owner, int opponent_id, CLIENT_STATE* opponent_choice)
 {
-	int exit_code;
 	DWORD wait_result;
-	CLIENT_STATE opponent_state;
 
 	if (session_owner)
 	{
-		if (!SetEvent(opponent_choice_event))
+		if (!SetEvent(session_owner_choice_event))
 		{
 			printf("SetEvent failed (%d)\n", GetLastError());
 			return SERVER_SET_EVENT_FAILED;
@@ -582,43 +621,26 @@ int CheckGameOver(BOOL session_owner, int opponent_id, BOOL* game_over, GAME_OVE
 			return SERVER_WAIT_FOR_EVENT_FAILED;
 		}
 
-		opponent_state = connected_clients[opponent_id]->state;
+		*opponent_choice = connected_clients[opponent_id]->state;
 	}
 	else
 	{
 		// Wait for opponent's choice
 		printf("Waiting for %s to choose...\n", connected_clients[opponent_id]->userinfo);
-		wait_result = WaitForSingleObject(opponent_choice_event, INFINITE);
+		wait_result = WaitForSingleObject(session_owner_choice_event, INFINITE);
 		if (wait_result != WAIT_OBJECT_0)
 		{
 			return SERVER_WAIT_FOR_EVENT_FAILED;
 		}
 
 		// Check opponent's choice
-		opponent_state = connected_clients[opponent_id]->state;
+		*opponent_choice = connected_clients[opponent_id]->state;
 
 		if (!SetEvent(opponent_choice_event))
 		{
 			printf("SetEvent failed (%d)\n", GetLastError());
 			return SERVER_SET_EVENT_FAILED;
 		}
-	}
-
-	if (user_choice == OPT_REPLAY)
-	{
-		if (opponent_state == STATE_VERSUS)
-		{
-			*game_over = FALSE;
-		}
-		else
-		{
-			// Send opponent quit
-			// Go to main menu
-		}
-	}
-	else
-	{
-		*game_over = TRUE;
 	}
 
 	return SERVER_SUCCESS;
