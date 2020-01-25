@@ -685,7 +685,7 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 		exit_code = SendGameResultsMessage(opponent_name, opponent_move, player_move, opponent_name, client->socket);
 	else
 	{
-		exit_code = SendGameResultsTieMessage(opponent_name, opponent_move, player_move, opponent_name, client->socket);
+		exit_code = SendGameResultsMessage(opponent_name, opponent_move, player_move, opponent_name, client->socket);
 	}
 
 	if (exit_code != SERVER_SUCCESS)
