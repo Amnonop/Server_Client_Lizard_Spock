@@ -108,7 +108,7 @@ int GetGameOverMenuMessage(SOCKET socket)
 		if (message != NULL)
 		{
 			free(message);
-			return CLIENT_RECEIVE_MSG_FAILED;
+			return CLIENT_TRNS_FAILED;
 		}
 	}
 
@@ -218,7 +218,7 @@ int GetReplayStatus(BOOL* replay, SOCKET socket)
 		if (message != NULL)
 		{
 			free(message);
-			return CLIENT_RECEIVE_MSG_FAILED;
+			return CLIENT_TRNS_FAILED;
 		}
 	}
 
