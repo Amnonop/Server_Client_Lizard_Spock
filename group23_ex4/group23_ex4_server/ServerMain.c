@@ -293,7 +293,7 @@ static DWORD HandleConnectionsThread()
 		accept_socket = accept(server_socket, NULL, NULL);
 		if (accept_socket == INVALID_SOCKET)
 		{
-			printf("Accepting connection with client failed: %ld\n", WSAGetLastError());
+			//printf("Accepting connection with client failed: %ld\n", WSAGetLastError());
 			closesocket(server_socket);
 			return SERVER_ACCEPT_CONNECTION_FAILED;
 		}
@@ -304,7 +304,6 @@ static DWORD HandleConnectionsThread()
 		if (client_id == -1)
 		{
 			// Send SERVER_DENIED message to the client
-			printf("Sending SERVER_DENIED message.\n");
 			exit_code = SendDeniedMessage(accept_socket);
 			if (exit_code != SERVER_SUCCESS)
 			{
@@ -319,8 +318,8 @@ static DWORD HandleConnectionsThread()
 			if (connected_clients[client_id] == NULL)
 			{
 				printf("Memory allocation failed.\n");
-				// TODO: Cleanup
-				return SERVER_MEM_ALLOC_FAILED;
+				exit_code = SERVER_MEM_ALLOC_FAILED;
+				break;
 			}
 			connected_clients[client_id]->socket = accept_socket;
 			connected_clients[client_id]->client_id = client_id;
@@ -339,13 +338,21 @@ static DWORD HandleConnectionsThread()
 			if (client_thread_handles[client_id] == NULL)
 			{
 				printf("Failed to create a thread for a new client.\n");
-				// TODO: Cleanup
-				return SERVER_THREAD_CREATION_FAILED;
+				exit_code = SERVER_THREAD_CREATION_FAILED;
+				break;
 			}
 
 			connected_clients_count++;
 		}
 	}
+
+	if (!SetEvent(exit_event))
+	{
+		printf("Error setting event.\n");
+		return SERVER_SET_EVENT_FAILED;
+	}
+
+	return exit_code;
 }
 
 static DWORD CheckExitThread(void)
@@ -668,7 +675,6 @@ int GetGameOverOpponentChoice(BOOL session_owner, int opponent_id, CLIENT_STATE*
 		}
 
 		// Wait for opponent's choice
-		printf("Waiting for %s to choose...\n", connected_clients[opponent_id]->userinfo);
 		wait_result = WaitForSingleObject(opponent_choice_event, INFINITE);
 		if (wait_result != WAIT_OBJECT_0)
 		{
@@ -680,7 +686,6 @@ int GetGameOverOpponentChoice(BOOL session_owner, int opponent_id, CLIENT_STATE*
 	else
 	{
 		// Wait for opponent's choice
-		printf("Waiting for %s to choose...\n", connected_clients[opponent_id]->userinfo);
 		wait_result = WaitForSingleObject(session_owner_choice_event, INFINITE);
 		if (wait_result != WAIT_OBJECT_0)
 		{
@@ -722,7 +727,6 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 	// TODO: Write move to file and signal write event
 	if (is_session_owner)
 	{
-		printf("%s is the session owner.\n", client->userinfo);
 		exit_code = UpdatePlayerMove(GAME_SESSION_FILENAME, client->userinfo, player_move, game_session_write_event);
 		if (exit_code != SERVER_SUCCESS)
 		{
@@ -751,10 +755,8 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 		}
 	}
 
-	printf("%s played %d\n", opponent_name, opponent_move);
-
 	// Send SERVER_GAME_RESULTS
-	winner = CheckWinner(player_move, opponent_move);
+	winner = computeWinner(player_move, opponent_move);
 	if (winner == 1)
 		exit_code = SendGameResultsMessage(opponent_name, opponent_move, player_move, client->userinfo, client->socket);
 	else
@@ -800,14 +802,12 @@ int GetOponentMove(const char* game_session_path, const char* opponent_name, MOV
 	DWORD wait_result;
 	int exit_code;
 
-	printf("Waiting for %s to write move...\n", opponent_name);
 	wait_result = WaitForSingleObject(write_event, INFINITE);
 	if (wait_result != WAIT_OBJECT_0)
 	{
 		return SERVER_WAIT_FOR_EVENT_FAILED;
 	}
 
-	printf("Reading %s's move...\n", opponent_name);
 	exit_code = ReadOponnentMoveFromGameSession(GAME_SESSION_FILENAME, opponent_name, opponent_move);
 	if (exit_code != SERVER_SUCCESS)
 	{
@@ -924,7 +924,7 @@ int Play(client_info_t* client)
 		}
 
 		// Send SERVER_GAME_RESULTS
-		winner = CheckWinner(player_move, computer_move);
+		winner = computeWinner(player_move, computer_move);
 		if (winner == 1)
 			exit_code = SendGameResultsMessage("Server", computer_move, player_move, client->userinfo, client->socket);
 		// TODO: Send player username
@@ -949,19 +949,11 @@ int Play(client_info_t* client)
 	}
 }
 
-int CheckWinner(MOVE_TYPE player_a_move, MOVE_TYPE player_b_move)
-{
-	int exit_code = SERVER_SUCCESS;
-
-	return exit_code;
-}
-
 MOVE_TYPE GetComputerMove()
 {
 	MOVE_TYPE move;
 
 	move = rand() % 5;
-	printf("Server is playing: %d\n", move);
 	return move;
 }
 

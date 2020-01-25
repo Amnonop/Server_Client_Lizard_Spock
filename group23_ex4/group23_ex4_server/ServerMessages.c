@@ -55,7 +55,7 @@ int SendServerInviteMessage(char* oponent_name, SOCKET socket)
 		message_name,
 		oponent_name);
 
-	printf("Sending message: %s\n", message_string);
+	//printf("Sending message: %s\n", message_string);
 
 	send_result = SendString(message_string, socket);
 	if (send_result == TRNS_FAILED)
@@ -94,8 +94,6 @@ int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move,
 			oponent_move_str,
 			player_move_str,
 			winner_name);
-
-		printf("Sending message: %s\n", message_string);
 	}
 
 	else if (winner_name == NULL)
@@ -105,8 +103,6 @@ int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move,
 			oponent_username,
 			oponent_move_str,
 			player_move_str);
-
-		printf("Sending message: %s\n", message_string);
 	}
 	send_result = SendString(message_string, socket);
 	if (send_result == TRNS_FAILED)
@@ -143,7 +139,7 @@ int SendOpponentQuitMessage(const char* oponnent_name, SOCKET socket)
 		message_name,
 		oponnent_name);
 
-	printf("Sending message: %s\n", message_string);
+	//printf("Sending message: %s\n", message_string);
 
 	send_result = SendString(message_string, socket);
 	if (send_result == TRNS_FAILED)
@@ -171,7 +167,7 @@ int SendMessageWithoutParams(const char* message_name, SOCKET socket)
 
 	sprintf_s(message_string, message_length, "%s\n", message_name);
 
-	printf("Sending message: %s\n", message_string);
+	//printf("Sending message: %s\n", message_string);
 
 	send_result = SendString(message_string, socket);
 	if (send_result == TRNS_FAILED)

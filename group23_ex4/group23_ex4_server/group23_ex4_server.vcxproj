@@ -121,7 +121,6 @@
     <ClCompile Include="..\Shared\StringTools.c" />
     <ClCompile Include="GameSession.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="server.c" />
     <ClCompile Include="ServerGetMessages.c" />
     <ClCompile Include="ServerMain.c" />
     <ClCompile Include="ServerMessages.c" />
@@ -133,7 +132,6 @@
     <ClInclude Include="..\Shared\StringTools.h" />
     <ClInclude Include="Commons.h" />
     <ClInclude Include="GameSession.h" />
-    <ClInclude Include="server.h" />
     <ClInclude Include="ServerGetMessages.h" />
     <ClInclude Include="ServerMain.h" />
     <ClInclude Include="ServerMessages.h" />

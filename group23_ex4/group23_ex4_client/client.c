@@ -42,10 +42,6 @@ static DWORD SendDataThread(void)
 	{
 		new_msg = DequeueMsg(msg_queue); // Dequeue message from buffer to send to the server
 
-		if (STRINGS_ARE_EQUAL(new_msg, "exit"))
-			return 0; //"exit" signals an exit from the client side
-
-		printf("Sending message: %s\n", new_msg);
 		SendRes = SendString(new_msg, m_socket);
 
 		if (SendRes == TRNS_FAILED)
@@ -412,7 +408,6 @@ int GetPlayerMoveRequestMessage(SOCKET socket)
 	int exit_code;
 	message_t* message = NULL;
 
-	printf("Waiting for SERVER_PLAYER_MOVE_REQUEST.\n");
 	exit_code = ReceiveMessage(socket, &message);
 	if (exit_code != MSG_SUCCESS)
 	{
@@ -446,7 +441,7 @@ void ShowGameResults(game_results_t* game_results)
 {
 	printf("You played: %s\n", game_results->player_move);
 	printf("%s played: %s\n", game_results->oponent_name, game_results->oponent_move);
-	if (game_results->winner != NULL)
+	if (!STRINGS_ARE_EQUAL(game_results->player_move, game_results->oponent_move))
 	{
 		printf("%s won!\n", game_results->winner);
 	}

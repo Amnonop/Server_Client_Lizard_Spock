@@ -51,7 +51,6 @@ int WriteMoveToGameSession(const char* game_session_path, MOVE_TYPE move, const 
 	}
 
 	move_string = MoveTypeToString(move);
-	printf("Writing %s:%s to game session.\n", username, move_string);
 	fprintf_s(file, "%s:%s\n", username, move_string);
 
 	fclose(file);
@@ -77,7 +76,6 @@ int ReadOponnentMoveFromGameSession(const char* game_session_path, const char* o
 
 	while (fgets(move_line, sizeof(move_line), file) != NULL)
 	{
-		printf("Reading %s from game session.\n", move_line);
 		move_line_copy = CopyString(move_line);
 		if (move_line_copy == NULL)
 		{

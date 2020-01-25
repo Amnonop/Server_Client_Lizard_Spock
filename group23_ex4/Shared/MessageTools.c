@@ -25,12 +25,12 @@ int ReceiveMessageWithTimeout(SOCKET socket, message_t** message, long timeout_s
 	receive_result = ReceiveStringWithTimeout(&accepted_string, socket, timeout_seconds);
 	if (receive_result == TRNS_FAILED)
 	{
-		printf("Target disconnected. Ending communication.\n");
+		//printf("Target disconnected. Ending communication.\n");
 		return MSG_TRANS_FAILED;
 	}
 	else if (receive_result == TRNS_DISCONNECTED)
 	{
-		printf("Target disconnected. Ending communication.\n");
+		//printf("Target disconnected. Ending communication.\n");
 		return MSG_TRANS_FAILED;
 	}
 	else if (receive_result == TRNS_TIMEOUT)
@@ -39,7 +39,6 @@ int ReceiveMessageWithTimeout(SOCKET socket, message_t** message, long timeout_s
 		return MSG_TIMEOUT;
 	}
 
-	printf("Received message: %s\n", accepted_string);
 	GetMessageStruct(*message, accepted_string);
 
 	free(accepted_string);
@@ -62,12 +61,12 @@ int ReceiveMessage(SOCKET socket, message_t** message)
 	receive_result = ReceiveString(&accepted_string, socket);
 	if (receive_result == TRNS_FAILED)
 	{
-		printf("Target disconnected. Ending communication.\n");
+		//printf("Target disconnected. Ending communication.\n");
 		return MSG_TRANS_FAILED;
 	}
 	else if (receive_result == TRNS_DISCONNECTED)
 	{
-		printf("Target disconnected. Ending communication.\n");
+		//printf("Target disconnected. Ending communication.\n");
 		return MSG_TRANS_FAILED;
 	}
 	else if (receive_result == TRNS_TIMEOUT)
@@ -76,7 +75,6 @@ int ReceiveMessage(SOCKET socket, message_t** message)
 		return MSG_TIMEOUT;
 	}
 
-	printf("Received message: %s\n", accepted_string);
 	GetMessageStruct(*message, accepted_string);
 
 	free(accepted_string);

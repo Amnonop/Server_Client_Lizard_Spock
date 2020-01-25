@@ -33,7 +33,7 @@ int PlayerVsPlayer(SOCKET socket, message_queue_t* msg_queue)
 	}
 	else
 	{
-		printf("Starting play vs %s", oponent_name);
+		printf("Starting play vs %s\n", oponent_name);
 		exit_code = GetPlayerMoveRequestMessage(socket);
 		if (exit_code != CLIENT_SUCCESS)
 			return exit_code;

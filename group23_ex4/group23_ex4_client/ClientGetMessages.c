@@ -64,7 +64,6 @@ int GetGameResultsMessage(SOCKET socket, game_results_t** game_results)
 	int exit_code;
 	message_t* message = NULL;
 
-	printf("Waiting for SERVER_GAME_RESULTS.\n");
 	exit_code = ReceiveMessageWithTimeout(socket, &message, TIMEOUT_INFINITE);
 	if (exit_code != MSG_SUCCESS)
 	{
@@ -211,7 +210,6 @@ int GetReplayStatus(BOOL* replay, SOCKET socket)
 	int exit_code;
 	message_t* message = NULL;
 
-	printf("Waiting for SERVER_PLAYER_MOVE_REQUEST.\n");
 	exit_code = ReceiveMessage(socket, &message);
 	if (exit_code != MSG_SUCCESS)
 	{
