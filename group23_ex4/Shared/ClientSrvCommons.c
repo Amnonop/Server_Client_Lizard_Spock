@@ -1,6 +1,30 @@
 #include <string.h>
 #include "ClientSrvCommons.h"
 
+char* MoveTypeToString(MOVE_TYPE move)
+{
+	switch (move)
+	{
+	case (ROCK):
+		return "ROCK";
+		break;
+	case (PAPER):
+		return "PAPER";
+		break;
+	case(SCISSORS):
+		return "SCISSORS";
+		break;
+	case (LIZARD):
+		return "LIZARD";
+		break;
+	case (SPOCK):
+		return "SPOCK";
+		break;
+	default:
+		break;
+	}
+}
+
 MOVE_TYPE StringToMoveType(const char* move_type_string)
 {
 	if (STRINGS_ARE_EQUAL(move_type_string, "ROCK"))

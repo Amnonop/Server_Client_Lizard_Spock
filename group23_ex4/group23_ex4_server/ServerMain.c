@@ -652,7 +652,7 @@ int ReadOponnentMoveFromGameSession(const char* game_session_path, const char* o
 		if (STRINGS_ARE_EQUAL(token, oponnent_name))
 		{
 			token = strtok_s(NULL, delimiter, &next_token);
-			//*move = ParsePlayerMoveMessage
+			*move = StringToMoveType(token);
 			free(move_line_copy);
 			break;
 		}

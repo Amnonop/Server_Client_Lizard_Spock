@@ -31,6 +31,7 @@ typedef enum
 	OPT_MAIN_MENU = 2
 } GAME_OVER_MENU_OPTIONS;
 
+char* MoveTypeToString(MOVE_TYPE move);
 MOVE_TYPE StringToMoveType(const char* move_type_string);
 
 #endif
