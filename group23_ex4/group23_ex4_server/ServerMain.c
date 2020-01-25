@@ -106,7 +106,7 @@ int RunServer(int port_number)
 	{
 		if (!CloseHandle(game_session_mutex))
 		{
-
+		
 		}
 		return SERVER_CREATE_EVENT_FAILED;
 	}
