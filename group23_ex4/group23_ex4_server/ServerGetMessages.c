@@ -37,6 +37,12 @@ int GetPlayerMainMenuChoice(SOCKET socket, MAIN_MENU_OPTIONS* user_choice)
 		exit_code = SERVER_SUCCESS;
 	}
 
+	else if (STRINGS_ARE_EQUAL(message->message_type, "CLIENT_LEADERBOARD"))
+	{
+		*user_choice = LEADERBOARD;
+		exit_code = SERVER_SUCCESS;
+	}
+
 	free(message);
 	return SERVER_SUCCESS;
 }

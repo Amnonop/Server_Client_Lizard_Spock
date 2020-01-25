@@ -34,8 +34,7 @@ HANDLE game_session_write_event;
 HANDLE opponent_write_event;
 HANDLE session_owner_choice_event;
 HANDLE opponent_choice_event;
-HANDLE read_log_file_semaphore_handles;
-HANDLE write_log_file_mutex_handle;
+HANDLE connected_clients_mutex;
 
 int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
@@ -80,6 +79,16 @@ int RunServer(int port_number)
 	if (game_session_mutex == NULL)
 	{
 		printf("Error creating Game Session Mutex.\n");
+		return SERVER_CREATE_MUTEX_FAILED;
+	}
+
+	connected_clients_mutex = CreateMutex(
+		NULL,	/* default security attributes */
+		FALSE,	/* initially not owned */
+		NULL);	/* unnamed mutex */
+	if (connected_clients_mutex == NULL)
+	{
+		printf("Error creating connected_clients_mutex.\n");
 		return SERVER_CREATE_MUTEX_FAILED;
 	}
 
@@ -287,23 +296,6 @@ int RunServer(int port_number)
 
 			connected_clients_count++;
 		}
-		//if (connected_clients_count < CLIENTS_MAX_NUM)
-		//{
-		//	connected_clients[connected_clients_count].socket = accept_socket;
-
-		//	// Open a thread for the client
-		//	client_params[connected_clients_count].client_number = connected_clients_count;
-		//	client_thread_handles[connected_clients_count] = CreateThread(
-		//		NULL, 
-		//		0, 
-		//		(LPTHREAD_START_ROUTINE)ClientThread, 
-		//		(LPVOID)&(client_params[connected_clients_count]), 
-		//		0, 
-		//		NULL);
-		//	// TODO: Check if null
-
-		//	connected_clients_count++;
-		//}
 	}
 
 	return SERVER_SUCCESS;
@@ -324,28 +316,6 @@ int GetAvailableClientId()
 	return -1;
 }
 
-int translatePlayerMove(char* move)
-{
-	if ((move[0] == "s") || (move[0] == "S"))
-	{
-		if ((move[1] == "c") || (move[1] == "C"))
-			return SCISSORS;
-		else
-			return SPOCK;
-	}
-	else if ((move[0] == "l") || (move[0] == "L"))
-	{
-		return LIZARD;
-	}
-	else if ((move[0] == "r") || (move[0] == "R"))
-	{
-		return ROCK;
-	}
-	else if ((move[0] == "p") || (move[0] == "P"))
-	{
-		return PAPER;
-	}
-}
 int computeWinner(int first_player_move, int  sec_player_move)
 {
 	//tie//

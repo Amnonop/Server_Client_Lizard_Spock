@@ -5,7 +5,11 @@
 #include "Commons.h"
 #include "../Shared/ClientSrvCommons.h"
 
-
+int SendLeaderboardMessage(message_queue_t* message_queue)
+{
+	const char* message_name = "CLIENT_LEADERBOARD";
+	return SendClientMessageWithoutParams(message_name, message_queue);
+}
 
 int SendClientMessageWithoutParams(const char* message_name, message_queue_t* message_queue)
 {

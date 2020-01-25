@@ -39,7 +39,6 @@ int GetPlayerMoveRequestMessage(SOCKET socket);
 void ShowGameResults(game_results_t* game_results);
 GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice();
 int ViewLeaderBoard(SOCKET socket);
-int PlayRound(SOCKET socket);
 
 //Reading data coming from the server Thread
 static DWORD RecvDataThread(LPVOID lpParam)
@@ -295,14 +294,12 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				break;
 
 			case LEADERBOARD:
-				//client_state = WAITING_TO_START_GAME;
-				exit_code = SendClientLeaderBoardMessage(msg_queue);
-				if (exit_code != MSG_SUCCESS)
-					return exit_code;
-
-				exit_code = ViewLeaderBoard(thread_params->socket);
-				if (exit_code != CLIENT_SUCCESS)
-					return exit_code;
+				printf("Sorry, this option is not currently supported.\n");
+				exit_code = SendLeaderboardMessage(msg_queue);
+				if (exit_code != QUEUE_SUCCESS)
+				{
+					return CLIENT_TRNS_FAILED;
+				}
 				break;
 
 			case QUIT:
@@ -320,98 +317,6 @@ static DWORD ApplicationThread(LPVOID lpParam)
 				break;
 		}
 	}
-
-	//while (1)
-	//{
-	//	switch (client_state)
-	//	{
-	//		case FIRST_CONNECTION:
-	//			// Send CLIENT_REQUEST message with username to server
-	//			client_state = WAITING_SERVER_APPROVAL;
-	//			exit_code = SendClientRequestMessage(thread_params->username, msg_queue);
-	//			if (exit_code != QUEUE_SUCCESS)
-	//			{
-	//				return CLIENT_SEND_MSG_FAILED;
-	//			}
-	//			break;
-	//		case SERVER_APPROVED:
-	//			//printf("Connected to server on %s:%d", thread_params->server_ip, thread_params->server_port);
-	//			break;
-	//		case MAIN_MENU:
-	//			PrintMainMenu();
-	//			scanf_s("%d", &user_choice);
-	//			switch (user_choice)
-	//			{
-	//				case CLIENT_CPU:
-	//					client_state = WAITING_TO_START_GAME;
-	//					SendClientCPUMessage(msg_queue);
-	//					break;
-	//				default:
-	//					break;
-	//			}
-	//			break;
-	//		case PLAY_MOVE:
-	//			PlayMove();
-	//			break;
-	//		default:
-	//			break;
-	//	}
-		
-		//if ((game_started == 0) && (user_accepted == 0) && (run == 0)) // Username input for user
-		//{
-		//	//run++;
-		//	//strcpy(my_username, input); //Saving my username
-		//	//send_message = ConstructMessage(input, "username"); //Constructing the message to send to the server
-		//	////----->sending to buffer
-		//	//EnqueueMsg(msg_queue, send_message);
-
-		//	////---> Writing to logfile
-		//	//PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message);
-
-		//}
-		//if ((game_started == 1) && (user_accepted == 1)) { //Game started!
-		//	if (STRINGS_ARE_EQUAL(info->input_mode, "human")) { // If we are in human mode
-		//		gets_s(input, sizeof(input)); //Reading a string from the keyboard
-
-		//		type = MessageType(input); // Checking the type of the input (play or message)
-
-		//		//----> Play input
-		//		if (type == 1) {
-		//			send_message = ConstructMessage(input, "play"); //Constructing the message to send to the server
-		//			//-> send play to send buffer
-		//			EnqueueMsg(msg_queue, send_message);
-		//		}
-		//		//----> Exit input
-		//		else if (STRINGS_ARE_EQUAL(input, "exit")) {
-		//			//-> send exit to send buffer
-		//			EnqueueMsg(msg_queue, send_message);
-
-		//			//---> Writing to logfile
-		//			PrintToLogFile(info->LogFile_ptr, "Custom message", "Player entered exit input...");
-
-		//			thread_terminator("clean"); // Clean exit the programm
-		//			return 0;
-		//		}
-		//		//----> Message input
-		//		else if (type == 2) {
-		//			send_message = ConstructMessage(input, "message"); //Constructing the message to send to the server
-		//			//-> send play to send buffer
-		//			EnqueueMsg(msg_queue, send_message);
-		//		}
-		//		else {
-		//			printf("Error: Illegal command\n");
-		//			send_message = "Error: Illegal command";
-		//		}
-		//		//---> Writing to logfile
-		//		if (STRINGS_ARE_EQUAL("Error: Illegal command", send_message))
-		//			PrintToLogFile(info->LogFile_ptr, "Custom message: User input error", input);
-		//		else
-		//			PrintToLogFile(info->LogFile_ptr, "Sent to server", send_message); //Writing to logfile
-
-		//	}
-		//}
-		//free(send_message);
-	//}
 	return CLIENT_SUCCESS;
 }
 
