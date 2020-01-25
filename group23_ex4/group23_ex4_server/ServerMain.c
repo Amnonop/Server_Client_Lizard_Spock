@@ -681,8 +681,12 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 	winner = CheckWinner(player_move, opponent_move);
 	if (winner == 1)
 		exit_code = SendGameResultsMessage(opponent_name, opponent_move, player_move, client->userinfo, client->socket);
-	else
+	else if(winner == 2)
 		exit_code = SendGameResultsMessage(opponent_name, opponent_move, player_move, opponent_name, client->socket);
+	else
+	{
+		exit_code = SendGameResultsTieMessage(opponent_name, opponent_move, player_move, opponent_name, client->socket);
+	}
 
 	if (exit_code != SERVER_SUCCESS)
 		return exit_code;
@@ -875,8 +879,49 @@ int Play(client_info_t* client)
 
 int CheckWinner(MOVE_TYPE player_a_move, MOVE_TYPE player_b_move)
 {
-	int exit_code = SERVER_SUCCESS;
 
+	int exit_code = SERVER_SUCCESS;
+	//tie//
+	if (player_a_move == player_b_move)
+		return 0;
+
+	else if (player_a_move == ROCK)
+	{
+		if ((player_b_move == SCISSORS) || (player_b_move == LIZARD))
+			return 1;
+		else return 2;
+	}
+	else if (player_a_move == PAPER)
+	{
+		if ((player_b_move == ROCK) || (player_b_move == SPOCK))
+			return 1;
+		else return 2;
+	}
+
+	else if (player_a_move == SCISSORS)
+	{
+		if ((player_b_move == PAPER) || (player_b_move == LIZARD))
+			return 1;
+		else return 2;
+	}
+
+	else if (player_a_move == LIZARD)
+	{
+		if ((player_b_move == PAPER) || (player_b_move == SPOCK))
+			return 1;
+		else return 2;
+	}
+
+	else if (player_a_move == SPOCK)
+	{
+		if ((player_b_move == ROCK) || (player_b_move == SCISSORS))
+			return 1;
+		else return 2;
+	}
+	else
+	{
+		return 0;
+	}
 	return exit_code;
 }
 
