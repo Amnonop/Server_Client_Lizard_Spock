@@ -360,19 +360,13 @@ static DWORD ExitThread()
 		scanf_s("%s", 4, command_str);
 		if (STRINGS_ARE_EQUAL(command_str,"exit")==0)
 		{
-			exit_code = SERVER_EXIT;
+			break;
 		}
 		//critical part - end
 		if (!ReleaseMutex(exit_session_mutex))
 		{
 			return SERVER_MUTEX_RELEASE_FAILED;
 		}
-
-		
-
-
-
-
 	}
 	return exit_code;
 }
