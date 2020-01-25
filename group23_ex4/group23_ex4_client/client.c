@@ -624,7 +624,7 @@ int Play(SOCKET socket)
 
 
 //The function gets file pointer to logfile, format char: Received from server/Send to server, and the message itself, and write it to logfile
-void PrintToLogFile(FILE *ptr, char *format, char *message) {
+void WriteToLogFile(FILE *ptr, char *format, char *message) {
 	DWORD wait_code;
 	BOOL release_res;
 
