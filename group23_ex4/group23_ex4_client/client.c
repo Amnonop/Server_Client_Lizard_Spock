@@ -668,7 +668,8 @@ int PlayerVsPlayer(SOCKET socket)
 }
 
 
-viewLeaderBoard(SOCKET socket)
+
+ViewLeaderBoard(SOCKET socket)
 {
 	int exit_code;
 	char user_move[9];
@@ -676,6 +677,7 @@ viewLeaderBoard(SOCKET socket)
 	game_results_t* game_results = NULL;
 	GAME_OVER_MENU_OPTIONS user_choice;
 	BOOL game_over = FALSE;
+	const char* board_headline = "Name \t Won \t Lost \t W/L Ratio"
 
 	while (!game_over)
 	{
@@ -885,7 +887,8 @@ int MainClient(char* server_ip, int port_number, char* username)
 
 	// Initialize the message queue
 	msg_queue = CreateMessageQueue();
-	if (msg_queue == NULL) {
+	if (msg_queue == NULL) 
+	{
 		printf("Error initializing the message queue.\n");
 		return CLIENT_MSG_QUEUE_INIT_FAILED;
 	}
