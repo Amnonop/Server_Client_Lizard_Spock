@@ -73,7 +73,7 @@ int GetPlayerGameOverMenuChoice(SOCKET client_socket, GAME_OVER_MENU_OPTIONS* us
 	}
 	else
 	{
-		printf("Expected to get CLIENT_REPLAY or CLIENT_MAIN_MENU but got %s instead.\n", message->message_type);
+		//printf("Expected to get CLIENT_REPLAY or CLIENT_MAIN_MENU but got %s instead.\n", message->message_type);
 		exit_code = SERVER_UNEXPECTED_MESSAGE;
 	}
 
@@ -102,7 +102,7 @@ int GetPlayerMove(SOCKET client_socket, MOVE_TYPE* player_move)
 	}
 	else
 	{
-		printf("Expected to get CLIENT_PLAYER_MOVE but got %s instead.\n", message->message_type);
+		//printf("Expected to get CLIENT_PLAYER_MOVE but got %s instead.\n", message->message_type);
 		exit_code = SERVER_UNEXPECTED_MESSAGE;
 	}
 
@@ -137,7 +137,7 @@ int ParsePlayerMoveMessage(message_t* message, MOVE_TYPE* player_move)
 	}
 	else
 	{
-		printf("Invalid move type %s.\n", player_move_string);
+		//printf("Invalid move type %s.\n", player_move_string);
 		return SERVER_INVALID_PARAM_VALUE;
 	}
 
