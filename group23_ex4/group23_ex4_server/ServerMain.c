@@ -37,6 +37,7 @@ HANDLE session_owner_choice_event;
 HANDLE opponent_choice_event;
 HANDLE read_log_file_semaphore_handles;
 HANDLE write_log_file_mutex_handle;
+BOOL server_exit = FALSE;
 
 int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
@@ -55,6 +56,7 @@ int GetOponentMove(const char* game_session_path, const char* opponent_name, MOV
 int GetGameOverUserChoice(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice);
 int HandleGameSession(client_info_t* client, int opponent_id, BOOL* end_game);
 int GetGameOverOpponentChoice(BOOL session_owner, int opponent_id, CLIENT_STATE* opponent_choice);
+
 
 int RunServer(int port_number)
 {
@@ -326,31 +328,20 @@ int RunServer(int port_number)
 }
 
 
-static DWORD ExitThread(LPVOID thread_params)
+static DWORD ExitThread(LPVOID command)
 {
 	int exit_code;
 	client_params_t* client_params;
-
-	client_params = (client_params_t*)thread_params;
-
-	exit_code = AcceptPlayer(connected_clients[client_params->client_number]);
-	if (exit_code != SERVER_SUCCESS)
-	{
-		// TODO: Terminate the thread for this client
-		return exit_code;
-	}
-
+	char* command_str = NULL;
+	strcpy_s(command_str,4,(char*)command);
 	while (TRUE)
 	{
-		exit_code = HandlePlayer(connected_clients[client_params->client_number]);
-		if (exit_code == SERVER_CLIENT_DISCONNECTED)
+		if (STRINGS_ARE_EQUAL(command_str,"exit")==0)
 		{
-			return ClientDisconnected(client_params->client_number);
+			server_exit = TRUE;
 		}
-		else if (exit_code != SERVER_SUCCESS)
-		{
-			return exit_code;
-		}
+	}
+}
 
 int GetAvailableClientId()
 {
