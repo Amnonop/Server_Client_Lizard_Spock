@@ -126,6 +126,37 @@ int SendGameOverMenu(SOCKET socket)
 	return SendMessageWithoutParams(message_name, socket);
 }
 
+int SendOpponentQuitMessage(const char* oponnent_name, SOCKET socket)
+{
+	const char* message_name = "SERVER_OPPONENT_QUIT";
+	int message_length;
+	char* message_string;
+	TransferResult_t send_result;
+
+	// Build message string
+	message_length = strlen(message_name) + 1 + strlen(oponnent_name) + 2;
+	message_string = (char*)malloc(sizeof(char)*message_length);
+	if (message_string == NULL)
+		return SERVER_MEM_ALLOC_FAILED;
+
+	sprintf_s(message_string, message_length, "%s:%s\n",
+		message_name,
+		oponnent_name);
+
+	printf("Sending message: %s\n", message_string);
+
+	send_result = SendString(message_string, socket);
+	if (send_result == TRNS_FAILED)
+	{
+		printf("Service socket error while writing, closing thread.\n");
+		closesocket(socket);
+		return SERVER_TRANS_FAILED;
+	}
+
+	free(message_string);
+	return SERVER_SUCCESS;
+}
+
 int SendMessageWithoutParams(const char* message_name, SOCKET socket)
 {
 	int message_length;

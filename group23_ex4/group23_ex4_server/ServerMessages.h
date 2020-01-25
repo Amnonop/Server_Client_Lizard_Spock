@@ -15,5 +15,6 @@ int SendGameOverMenu(SOCKET socket);
 int SendNoOponentsMessage(SOCKET socket);
 int SendServerInviteMessage(char* oponent_name, SOCKET socket);
 char* MoveTypeToString(MOVE_TYPE move);
+int SendOpponentQuitMessage(const char* oponnent_name, SOCKET socket);
 
 #endif

@@ -566,7 +566,8 @@ int HandleGameSession(client_info_t* client, int opponent_id, BOOL* end_game)
 		else
 		{
 			*end_game = TRUE;
-			// Send opponent quit
+			exit_code = SendOpponentQuitMessage(connected_clients[opponent_id]->userinfo);
+			return exit_code;
 		}
 	}
 	else
