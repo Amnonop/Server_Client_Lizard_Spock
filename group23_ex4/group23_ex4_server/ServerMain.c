@@ -552,19 +552,35 @@ int PlayRoundVsPlayer(client_info_t* client, int is_session_owner, const char* o
 		{
 			return exit_code;
 		}
+
+		exit_code = UpdatePlayerMove(GAME_SESSION_FILENAME, client->userinfo, player_move, session_owner_write_event);
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
 	}
-	// TODO: Read move from file
 
 	// Send SERVER_GAME_RESULTS
-	winner = CheckWinner(player_move, oponent_move);
+	winner = CheckWinner(player_move, opponent_move);
 	if (winner == 1)
-		exit_code = SendGameResultsMessage("Server", oponent_move, player_move, client->userinfo, client->socket);
-	// TODO: Send player username
+		exit_code = SendGameResultsMessage(opponent_name, opponent_move, player_move, client->userinfo, client->socket);
 	else
-		exit_code = SendGameResultsMessage("Server", oponent_move, player_move, "Server", client->socket);
+		exit_code = SendGameResultsMessage(opponent_name, opponent_move, player_move, opponent_name, client->socket);
 
 	if (exit_code != SERVER_SUCCESS)
 		return exit_code;
+
+	if (is_session_owner)
+	{
+		// Delete the game session file
+		exit_code = RemoveFile(GAME_SESSION_FILENAME);
+		if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
+	}
+
+	return SERVER_SUCCESS;
 }
 
 int UpdatePlayerMove(const char* game_session_path, const char* username, MOVE_TYPE move, HANDLE write_event)

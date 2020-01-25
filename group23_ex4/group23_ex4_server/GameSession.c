@@ -26,6 +26,16 @@ int OpenNewFile(const char* path)
 	return SERVER_FILE_EXISTS;
 }
 
+int RemoveFile(const char* path)
+{
+	if (remove(path) != 0)
+	{
+		return SERVER_DELETE_FILE_FAILED;
+	}
+
+	return SERVER_SUCCESS;
+}
+
 int WriteMoveToGameSession(const char* game_session_path, MOVE_TYPE move, const char* username)
 {
 	FILE* file;
