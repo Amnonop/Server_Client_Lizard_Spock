@@ -37,7 +37,10 @@ HANDLE opponent_write_event;
 HANDLE session_owner_choice_event;
 HANDLE opponent_choice_event;
 HANDLE connected_clients_mutex;
+SOCKET server_socket = INVALID_SOCKET;
+int connected_clients_count = 0;
 
+static DWORD HandleConnectionsThread();
 int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
 MOVE_TYPE GetComputerMove();
@@ -56,13 +59,11 @@ int GetGameOverUserChoice(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_ch
 int HandleGameSession(client_info_t* client, int opponent_id, BOOL* end_game);
 int GetGameOverOpponentChoice(BOOL session_owner, int opponent_id, CLIENT_STATE* opponent_choice);
 
-
 int RunServer(int port_number)
 {
 	int exit_code;
 	WSADATA wsa_data;
 	int startup_result;
-	SOCKET server_socket = INVALID_SOCKET;
 	unsigned long address;
 	SOCKADDR_IN service;
 	int bind_result;
@@ -70,8 +71,8 @@ int RunServer(int port_number)
 	srand(42);
 	int thread_index;
 	int client_thread_count;
-	int connected_clients_count = 0;
 	int client_id;
+	HANDLE connections_thread_handle;
 
 	SOCKET accept_socket;
 
@@ -167,6 +168,20 @@ int RunServer(int port_number)
 		return SERVER_CREATE_EVENT_FAILED;
 	}
 
+	exit_executing_thread = CreateThread(
+		NULL,
+		0,
+		(LPTHREAD_START_ROUTINE)ExitThread,
+		NULL,
+		0,
+		NULL);
+	if (exit_executing_thread == NULL)
+	{
+		printf("Failed to create a thread for a new client.\n");
+		// TODO: Cleanup
+		return SERVER_THREAD_CREATION_FAILED;
+	}
+
 	// Initialize Winsock
 	startup_result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
 	if (startup_result != NO_ERROR)
@@ -240,7 +255,30 @@ int RunServer(int port_number)
 	for (client_thread_count = 0; client_thread_count < NUM_OF_WORKER_THREADS; client_thread_count++)
 		client_thread_handles[client_thread_count] = NULL;
 
+	connections_thread_handle = CreateThread(
+		NULL,
+		0,
+		(LPTHREAD_START_ROUTINE)HandleConnectionsThread,
+		(LPVOID)&(client_params[client_id]),
+		0,
+		NULL);
+	if (connections_thread_handle == NULL)
+	{
+		printf("Failed to create a thread to handle incoming connections.\n");
+		// TODO: Cleanup
+		return SERVER_THREAD_CREATION_FAILED;
+	}
+
 	printf("Waiting for a client to connect...\n");
+
+	return SERVER_SUCCESS;
+}
+
+static DWORD HandleConnectionsThread()
+{
+	SOCKET accept_socket;
+	int client_id;
+	int exit_code;
 
 	while (TRUE)
 	{
@@ -282,7 +320,7 @@ int RunServer(int port_number)
 
 			// Open a thread for the client
 			client_params[client_id].client_number = client_id;
-			
+
 			client_thread_handles[client_id] = CreateThread(
 				NULL,
 				0,
@@ -299,69 +337,20 @@ int RunServer(int port_number)
 
 			connected_clients_count++;
 		}
-		//if (connected_clients_count < CLIENTS_MAX_NUM)
-		//{
-		//	connected_clients[connected_clients_count].socket = accept_socket;
-
-		//	// Open a thread for the client
-		//	client_params[connected_clients_count].client_number = connected_clients_count;
-		//	client_thread_handles[connected_clients_count] = CreateThread(
-		//		NULL, 
-		//		0, 
-		//		(LPTHREAD_START_ROUTINE)ClientThread, 
-		//		(LPVOID)&(client_params[connected_clients_count]), 
-		//		0, 
-		//		NULL);
-		//	// TODO: Check if null
-
-		//	connected_clients_count++;
-		//}
-
-
-		exit_executing_thread = CreateThread(
-			NULL,
-			0,
-			(LPTHREAD_START_ROUTINE)ExitThread,
-			NULL,
-			0,
-			NULL);
-		if (exit_executing_thread == NULL)
-		{
-			printf("Failed to create a thread for a new client.\n");
-			// TODO: Cleanup
-			return SERVER_THREAD_CREATION_FAILED;
-		}
 	}
-
-	return SERVER_SUCCESS;
 }
-
 
 static DWORD ExitThread()
 {
 	int exit_code = SERVER_SUCCESS;
 	int wait_result;
 	char* command_str = NULL;
-	exit_session_mutex = CreateMutex(
-		NULL,	/* default security attributes */
-		FALSE,	/* initially not owned */
-		EXIT_SESSION_MUTEX_NAME);	/* unnamed mutex */
-	if (exit_session_mutex == NULL)
-	{
-		printf("Error creating Game Session Mutex.\n");
-		return SERVER_CREATE_MUTEX_FAILED;
-	}
+
 	while (TRUE)
 	{
 		if (exit_code != SERVER_SUCCESS)
 		{
 			break;
-		}
-		//critical part - begin
-		wait_result = WaitForSingleObject(exit_session_mutex, INFINITE);
-		if (wait_result != WAIT_OBJECT_0)
-		{
-			return SERVER_ACQUIRE_MUTEX_FAILED;
 		}
 		
 		scanf_s("%s", 4, command_str);
@@ -369,19 +358,44 @@ static DWORD ExitThread()
 		{
 			exit_code = SERVER_EXIT;
 		}
-		//critical part - end
-		if (!ReleaseMutex(exit_session_mutex))
-		{
-			return SERVER_MUTEX_RELEASE_FAILED;
-		}
-
-		
-
-
-
-
 	}
 	return exit_code;
+}
+
+static DWORD ClientStateThread(void)
+{
+	DWORD wait_result;
+	int exit_code;
+	int terminating_client_id;
+
+	while (TRUE)
+	{
+		wait_result = WaitForMultipleObjects(connected_clients_count, client_thread_handles, FALSE, INFINITE);
+		switch (wait_result)
+		{
+			case WAIT_OBJECT_0 + 0:
+				terminating_client_id = 0;
+				break;
+			case WAIT_OBJECT_0 + 1:
+				terminating_client_id = 1;
+			default:
+				printf("Wait error: %d\n", GetLastError());
+				Exit(SERVER_WAIT_ERROR);
+				break;
+		}
+
+		// Check the exit code of the thread
+		GetExitCodeThread(client_thread_handles[terminating_client_id], &exit_code);
+		if (exit_code != SERVER_CLIENT_DISCONNECTED)
+		{
+			// An error occured in a client thread, terminatig the program
+			printf("An error occured in a client thread.\n");
+			Exit(exit_code);
+		}
+
+		// Close the handle
+		CloseHandle(client_thread_handles[terminating_client_id]);
+	}
 }
 
 int GetAvailableClientId()
@@ -467,6 +481,7 @@ static DWORD ClientThread(LPVOID thread_params)
 		}
 		else if (exit_code != SERVER_SUCCESS)
 		{
+			ClientDisconnected(client_params->client_number);
 			return exit_code;
 		}
 	}
@@ -949,5 +964,33 @@ int ClientDisconnected(int client_id)
 	free(connected_clients[client_id]);
 	connected_clients[client_id] = NULL;
 
+	connected_clients_count--;
+
 	return SERVER_CLIENT_DISCONNECTED;
+}
+
+int Exit(int exit_code)
+{
+	int i;
+
+	closesocket(server_socket);
+	
+	for (i = 0; i < NUM_OF_WORKER_THREADS; i++)
+	{
+		if (connected_clients[i] != NULL)
+		{
+			closesocket(connected_clients[i]->socket);
+			CloseHandle(client_thread_handles[i]);
+			TerminateThread(client_thread_handles[i], 0);
+		}
+	}
+
+	CloseHandle(game_session_mutex);
+	CloseHandle(connected_clients_mutex);
+	CloseHandle(game_session_write_event);
+	CloseHandle(opponent_write_event);
+	CloseHandle(opponent_choice_event);
+	CloseHandle(session_owner_choice_event);
+
+	return exit_code;
 }
