@@ -16,9 +16,6 @@
 #include "../Shared/ClientSrvCommons.h"
 #include "../Shared/MessageTools.h"
 
-#define SERVER_ADDRESS_STR "127.0.0.1"
-
-
 //--> Global parameters
 SOCKET m_socket; // comuunication socket
 message_queue_t* msg_queue = NULL; // pointer to send message buffer
