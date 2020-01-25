@@ -36,11 +36,11 @@ HANDLE game_session_write_event;
 HANDLE opponent_write_event;
 HANDLE session_owner_choice_event;
 HANDLE opponent_choice_event;
-HANDLE connected_clients_mutex;
 SOCKET server_socket = INVALID_SOCKET;
 int connected_clients_count = 0;
+HANDLE exit_event;
 
-static DWORD HandleConnectionsThread();
+static DWORD HandleConnectionsThread(void);
 int GetAvailableClientId();
 static DWORD ClientThread(LPVOID thread_params);
 MOVE_TYPE GetComputerMove();
@@ -58,6 +58,8 @@ int GetOponentMove(const char* game_session_path, const char* opponent_name, MOV
 int GetGameOverUserChoice(client_info_t* client, GAME_OVER_MENU_OPTIONS* user_choice);
 int HandleGameSession(client_info_t* client, int opponent_id, BOOL* end_game);
 int GetGameOverOpponentChoice(BOOL session_owner, int opponent_id, CLIENT_STATE* opponent_choice);
+int TerminateServer();
+static DWORD CheckExitThread(void);
 
 int RunServer(int port_number)
 {
@@ -71,8 +73,8 @@ int RunServer(int port_number)
 	srand(42);
 	int thread_index;
 	int client_thread_count;
-	int client_id;
 	HANDLE connections_thread_handle;
+	DWORD wait_result;
 
 	SOCKET accept_socket;
 
@@ -86,16 +88,6 @@ int RunServer(int port_number)
 		return SERVER_CREATE_MUTEX_FAILED;
 	}
 
-	connected_clients_mutex = CreateMutex(
-		NULL,	/* default security attributes */
-		FALSE,	/* initially not owned */
-		NULL);	/* unnamed mutex */
-	if (connected_clients_mutex == NULL)
-	{
-		printf("Error creating connected_clients_mutex.\n");
-		return SERVER_CREATE_MUTEX_FAILED;
-	}
-
 	game_session_write_event = CreateEvent(
 		NULL,               // default security attributes
 		FALSE,               // manual-reset event
@@ -104,10 +96,7 @@ int RunServer(int port_number)
 	);
 	if (game_session_write_event == NULL)
 	{
-		if (!CloseHandle(game_session_mutex))
-		{
-
-		}
+		CloseHandle(game_session_mutex);
 		return SERVER_CREATE_EVENT_FAILED;
 	}
 
@@ -119,10 +108,8 @@ int RunServer(int port_number)
 	);
 	if (opponent_write_event == NULL)
 	{
-		if (!CloseHandle(game_session_mutex))
-		{
-
-		}
+		CloseHandle(game_session_mutex);
+		CloseHandle(game_session_write_event);
 		return SERVER_CREATE_EVENT_FAILED;
 	}
 
@@ -134,16 +121,9 @@ int RunServer(int port_number)
 	);
 	if (opponent_choice_event == NULL)
 	{
-		if (!CloseHandle(game_session_mutex))
-		{
-
-		}
-
-		if (!CloseHandle(game_session_write_event))
-		{
-
-		}
-
+		CloseHandle(game_session_mutex);
+		CloseHandle(game_session_write_event);
+		CloseHandle(opponent_write_event);
 		return SERVER_CREATE_EVENT_FAILED;
 	}
 
@@ -155,28 +135,42 @@ int RunServer(int port_number)
 	);
 	if (session_owner_choice_event == NULL)
 	{
-		if (!CloseHandle(game_session_mutex))
-		{
+		CloseHandle(game_session_mutex);
+		CloseHandle(game_session_write_event);
+		CloseHandle(opponent_write_event);
+		CloseHandle(opponent_choice_event);
+		return SERVER_CREATE_EVENT_FAILED;
+	}
 
-		}
-
-		if (!CloseHandle(game_session_write_event))
-		{
-
-		}
-
+	exit_event = CreateEvent(
+		NULL,               // default security attributes
+		FALSE,               // manual-reset event
+		FALSE,              // initial state is nonsignaled
+		TEXT("exit_event")  // object name
+	);
+	if (exit_event == NULL)
+	{
+		CloseHandle(game_session_mutex);
+		CloseHandle(game_session_write_event);
+		CloseHandle(opponent_write_event);
+		CloseHandle(opponent_choice_event);
+		CloseHandle(session_owner_choice_event);
 		return SERVER_CREATE_EVENT_FAILED;
 	}
 
 	exit_executing_thread = CreateThread(
 		NULL,
 		0,
-		(LPTHREAD_START_ROUTINE)ExitThread,
+		(LPTHREAD_START_ROUTINE)CheckExitThread,
 		NULL,
 		0,
 		NULL);
 	if (exit_executing_thread == NULL)
 	{
+		CloseHandle(game_session_mutex);
+		CloseHandle(game_session_write_event);
+		CloseHandle(opponent_write_event);
+		CloseHandle(opponent_choice_event);
 		printf("Failed to create a thread for a new client.\n");
 		// TODO: Cleanup
 		return SERVER_THREAD_CREATION_FAILED;
@@ -259,17 +253,29 @@ int RunServer(int port_number)
 		NULL,
 		0,
 		(LPTHREAD_START_ROUTINE)HandleConnectionsThread,
-		(LPVOID)&(client_params[client_id]),
+		NULL,
 		0,
 		NULL);
 	if (connections_thread_handle == NULL)
 	{
 		printf("Failed to create a thread to handle incoming connections.\n");
-		// TODO: Cleanup
+		CloseHandle(game_session_mutex);
+		CloseHandle(game_session_write_event);
+		CloseHandle(opponent_write_event);
+		CloseHandle(opponent_choice_event);
+		CloseHandle(exit_executing_thread);
 		return SERVER_THREAD_CREATION_FAILED;
 	}
 
-	printf("Waiting for a client to connect...\n");
+	// Wait for exit event
+	wait_result = WaitForSingleObject(exit_event, INFINITE);
+	if (wait_result != WAIT_OBJECT_0)
+	{
+		printf("Wait error %d\n", GetLastError());
+		return SERVER_WAIT_ERROR;
+	}
+
+	TerminateServer();
 
 	return SERVER_SUCCESS;
 }
@@ -279,6 +285,8 @@ static DWORD HandleConnectionsThread()
 	SOCKET accept_socket;
 	int client_id;
 	int exit_code;
+
+	printf("Waiting for a client to connect...\n");
 
 	while (TRUE)
 	{
@@ -340,7 +348,7 @@ static DWORD HandleConnectionsThread()
 	}
 }
 
-static DWORD ExitThread()
+static DWORD CheckExitThread(void)
 {
 	int exit_code = SERVER_SUCCESS;
 	int wait_result;
@@ -348,17 +356,19 @@ static DWORD ExitThread()
 
 	while (TRUE)
 	{
-		if (exit_code != SERVER_SUCCESS)
+		scanf_s("%s", 4, command_str);
+		if (STRINGS_ARE_EQUAL(command_str, "exit"))
 		{
+			// Set exit event
+			if (!SetEvent(exit_event))
+			{
+				printf("Error setting event.\n");
+				return SERVER_SET_EVENT_FAILED;
+			}
 			break;
 		}
-		
-		scanf_s("%s", 4, command_str);
-		if (STRINGS_ARE_EQUAL(command_str,"exit")==0)
-		{
-			exit_code = SERVER_EXIT;
-		}
 	}
+
 	return exit_code;
 }
 
@@ -969,7 +979,7 @@ int ClientDisconnected(int client_id)
 	return SERVER_CLIENT_DISCONNECTED;
 }
 
-int Exit(int exit_code)
+int TerminateServer()
 {
 	int i;
 
@@ -986,11 +996,10 @@ int Exit(int exit_code)
 	}
 
 	CloseHandle(game_session_mutex);
-	CloseHandle(connected_clients_mutex);
 	CloseHandle(game_session_write_event);
 	CloseHandle(opponent_write_event);
 	CloseHandle(opponent_choice_event);
 	CloseHandle(session_owner_choice_event);
 
-	return exit_code;
+	return SERVER_SUCCESS;
 }
