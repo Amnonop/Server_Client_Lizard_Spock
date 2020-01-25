@@ -120,9 +120,6 @@ int SendGameResultsMessage(const char* oponent_username, MOVE_TYPE oponent_move,
 	return SERVER_SUCCESS;
 }
 
-
-
-
 int SendGameOverMenu(SOCKET socket)
 {
 	const char* message_name = "SERVER_GAME_OVER_MENU";

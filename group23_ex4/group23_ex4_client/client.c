@@ -822,14 +822,14 @@ int GetPlayerMoveRequestMessage(SOCKET socket)
 
 int ShowPlayMoveMenuMessage()
 {
-	printf("Choose a move from the list: Rock, Paper, Scissors, Lizard or Spock:\n");
+	printf("Choose a move from the list: Rock, Papar, Scissors, Lizard or Spock:\n");
 }
 
 void ShowGameResults(game_results_t* game_results)
 {
 	printf("You played: %s\n", game_results->player_move);
 	printf("%s played: %s\n", game_results->oponent_name, game_results->oponent_move);
-	if ((game_results->winner != NULL)&&(STRINGS_ARE_EQUAL((game_results->player_move ), game_results->oponent_move)==0))
+	if (game_results->winner != NULL)
 	{
 		printf("%s won!\n", game_results->winner);
 	}
