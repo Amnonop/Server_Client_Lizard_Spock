@@ -622,6 +622,23 @@ int Play(SOCKET socket)
 	}
 }
 
+
+//The function gets file pointer to logfile, format char: Received from server/Send to server, and the message itself, and write it to logfile
+void PrintToLogFile(FILE *ptr, char *format, char *message) {
+	DWORD wait_code;
+	BOOL release_res;
+
+	wait_code = WaitForSingleObject(logfile_mutex, INFINITE);
+	if (wait_code != WAIT_OBJECT_0) printf("Fail while waiting for logfile mutex");
+
+	//critical region
+	fprintf(ptr, "%s: %s\n", format, message); //Writing to logfile
+	//end of critical region
+
+	release_res = ReleaseMutex(logfile_mutex);
+	if (release_res == FALSE) printf("Fail releasing logfile mutex");
+}
+
 int PlayerVsPlayer(SOCKET socket)
 {
 	int exit_code;
