@@ -5,6 +5,7 @@
 #include "Commons.h"
 #include "../Shared/StringTools.h"
 #include "../Shared/ClientSrvCommons.h"
+#include "../Shared/socketS.h"
 
 typedef enum
 {
@@ -64,7 +65,7 @@ int GetGameResultsMessage(SOCKET socket, game_results_t** game_results)
 	message_t* message = NULL;
 
 	printf("Waiting for SERVER_GAME_RESULTS.\n");
-	exit_code = ReceiveMessage(socket, &message);
+	exit_code = ReceiveMessageWithTimeout(socket, &message, TIMEOUT_INFINITE);
 	if (exit_code != MSG_SUCCESS)
 	{
 		if (message != NULL)
