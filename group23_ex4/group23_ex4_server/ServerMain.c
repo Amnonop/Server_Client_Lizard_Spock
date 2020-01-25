@@ -444,15 +444,8 @@ int SaveUsername(const char* username, client_info_t* client)
 
 int PlayerVersusPlayer(client_info_t* client)
 {
-	BOOL end_game = FALSE;
-	BOOL other_player_status = FALSE;
 	int exit_code;
-	MOVE_TYPE player_0_move;
-	MOVE_TYPE player_1_move;
-	BOOL curr_client_id = client->client_id;
-	int winner;
-	GAME_OVER_MENU_OPTIONS user_0_choice = OPT_REPLAY;
-	GAME_OVER_MENU_OPTIONS user_1_choice = OPT_REPLAY;
+	GAME_OVER_MENU_OPTIONS user_choice = OPT_REPLAY;
 	int oponent_id = -1;
 	BOOL session_owner = FALSE;
 
@@ -484,28 +477,22 @@ int PlayerVersusPlayer(client_info_t* client)
 		{
 			return exit_code;
 		}
-		write_log_file_mutex_handle = CreateMutex(
-			NULL,
-			FALSE,
-			"log_file_mutex_handle");
-		if (write_log_file_mutex_handle == NULL)
+
+		exit_code = PlayRoundVsPlayer(client, session_owner, connected_clients[oponent_id]->userinfo);
+		if (exit_code != SERVER_SUCCESS)
 		{
-			CloseHandle(write_log_file_mutex_handle);
-			printf("Error writing to log file\n");
-				
-			//return HM_MUTEX_CREATE_FAILED;
+			return exit_code;
 		}
 
-		read_log_file_semaphore_handles = CreateSemaphore(
-			NULL,												/* Default security attributes */
-			0,			/* Initial Count - the room is empty */
-			1,			/* Maximum Count */
-			NULL);												/* un-named */
+		// Wait for client's choice 
+		exit_code = SendGameOverMenu(client->socket);
+		if (exit_code != SERVER_SUCCESS)
+			return exit_code;
 
-		if (read_log_file_semaphore_handles == NULL)
+		exit_code = GetPlayerGameOverMenuChoice(client->socket, &user_choice);
+		if (exit_code != SERVER_SUCCESS)
 		{
-			CloseHandle(read_log_file_semaphore_handles);
-			printf("Error reading log file\n");
+			return exit_code;
 		}
 	}
 }
