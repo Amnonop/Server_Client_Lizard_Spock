@@ -18,6 +18,7 @@
 #define CLIENTS_MAX_NUM 2
 
 static char* GAME_SESSION_MUTEX_NAME = "game_session_mutex";
+static char* EXIT_SESSION_MUTEX_NAME = "exit_session_mutex";
 static char* GAME_SESSION_FILENAME = "GameSession.txt";
 
 typedef struct client_params
@@ -37,6 +38,7 @@ HANDLE session_owner_choice_event;
 HANDLE opponent_choice_event;
 HANDLE read_log_file_semaphore_handles;
 HANDLE write_log_file_mutex_handle;
+HANDLE exit_session_mutex;
 BOOL server_exit = FALSE;
 
 int GetAvailableClientId();
@@ -313,7 +315,7 @@ int RunServer(int port_number)
 			NULL,
 			0,
 			(LPTHREAD_START_ROUTINE)ExitThread,
-			(LPVOID)&(command),
+			NULL,
 			0,
 			NULL);
 		if (exit_executing_thread == NULL)
@@ -328,19 +330,46 @@ int RunServer(int port_number)
 }
 
 
-static DWORD ExitThread(LPVOID command)
+static DWORD ExitThread()
 {
-	int exit_code;
-	client_params_t* client_params;
+	int exit_code = SERVER_SUCCESS;
+	int wait_result;
 	char* command_str = NULL;
-	strcpy_s(command_str,4,(char*)command);
+	exit_session_mutex = CreateMutex(
+		NULL,	/* default security attributes */
+		FALSE,	/* initially not owned */
+		EXIT_SESSION_MUTEX_NAME);	/* unnamed mutex */
+	if (exit_session_mutex == NULL)
+	{
+		printf("Error creating Game Session Mutex.\n");
+		return SERVER_CREATE_MUTEX_FAILED;
+	}
 	while (TRUE)
 	{
+		wait_result = WaitForSingleObject(exit_session_mutex, INFINITE);
+		if (wait_result != WAIT_OBJECT_0)
+		{
+			return SERVER_ACQUIRE_MUTEX_FAILED;
+		}
+		//critical part - begin
+		scanf_s("%s", 4, command_str);
 		if (STRINGS_ARE_EQUAL(command_str,"exit")==0)
 		{
 			server_exit = TRUE;
 		}
+		//critical part - end
+		if (!ReleaseMutex(exit_session_mutex))
+		{
+			return SERVER_MUTEX_RELEASE_FAILED;
+		}
+
+		return exit_code;
+
+
+
+
 	}
+	return exit_code;
 }
 
 int GetAvailableClientId()
