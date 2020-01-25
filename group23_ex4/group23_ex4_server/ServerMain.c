@@ -26,6 +26,7 @@ typedef struct client_params
 } client_params_t;
 
 HANDLE client_thread_handles[NUM_OF_WORKER_THREADS];
+HANDLE exit_executing_thread;
 client_info_t* connected_clients[CLIENTS_MAX_NUM];
 client_params_t client_params[CLIENTS_MAX_NUM];
 TransferResult_t SendRes;
@@ -304,10 +305,52 @@ int RunServer(int port_number)
 
 		//	connected_clients_count++;
 		//}
+
+
+		exit_executing_thread = CreateThread(
+			NULL,
+			0,
+			(LPTHREAD_START_ROUTINE)ExitThread,
+			(LPVOID)&(command),
+			0,
+			NULL);
+		if (exit_executing_thread == NULL)
+		{
+			printf("Failed to create a thread for a new client.\n");
+			// TODO: Cleanup
+			return SERVER_THREAD_CREATION_FAILED;
+		}
 	}
 
 	return SERVER_SUCCESS;
 }
+
+
+static DWORD ExitThread(LPVOID thread_params)
+{
+	int exit_code;
+	client_params_t* client_params;
+
+	client_params = (client_params_t*)thread_params;
+
+	exit_code = AcceptPlayer(connected_clients[client_params->client_number]);
+	if (exit_code != SERVER_SUCCESS)
+	{
+		// TODO: Terminate the thread for this client
+		return exit_code;
+	}
+
+	while (TRUE)
+	{
+		exit_code = HandlePlayer(connected_clients[client_params->client_number]);
+		if (exit_code == SERVER_CLIENT_DISCONNECTED)
+		{
+			return ClientDisconnected(client_params->client_number);
+		}
+		else if (exit_code != SERVER_SUCCESS)
+		{
+			return exit_code;
+		}
 
 int GetAvailableClientId()
 {
