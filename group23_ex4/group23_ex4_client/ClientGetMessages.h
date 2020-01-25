@@ -13,5 +13,6 @@ int GetGameResultsMessage(SOCKET socket, game_results_t** game_results);
 int GetGameOverMenuMessage(SOCKET socket);
 void FreeGameResults(game_results_t* game_results);
 int GetStartGameMessage(BOOL* start_game, char** oponent_name, SOCKET socket);
+int GetReplayStatus(BOOL* replay, SOCKET socket);
 
 #endif

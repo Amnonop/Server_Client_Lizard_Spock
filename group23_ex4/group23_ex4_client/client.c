@@ -12,6 +12,7 @@
 #include "MessageQueue.h"
 #include "ClientMessages.h"
 #include "ClientGetMessages.h"
+#include "PlayerVsPlayer.h"
 #include "../Shared/ClientSrvCommons.h"
 #include "../Shared/MessageTools.h"
 
@@ -37,8 +38,8 @@ MOVE_TYPE ParsePlayerMove(const char* player_move);
 int GetPlayerMoveRequestMessage(SOCKET socket);
 void ShowGameResults(game_results_t* game_results);
 GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice();
-int PlayerVsPlayer(SOCKET socket);
 int ViewLeaderBoard(SOCKET socket);
+int PlayRound(SOCKET socket);
 
 //Reading data coming from the server Thread
 static DWORD RecvDataThread(LPVOID lpParam)
@@ -286,19 +287,11 @@ static DWORD ApplicationThread(LPVOID lpParam)
 					return exit_code;
 			break;
 			case CLIENT_VERSUS:
-				//client_state = WAITING_TO_START_GAME;
-				exit_code = PlayerVsPlayer(thread_params->socket);
+				exit_code = PlayerVsPlayer(thread_params->socket, msg_queue);
 				if (exit_code != CLIENT_SUCCESS)
 				{
 					return exit_code;
 				}
-				/*exit_code = SendClientVersusMessage(msg_queue);
-				if (exit_code != MSG_SUCCESS)
-					return exit_code;
-
-				exit_code = Play(thread_params->socket);
-				if (exit_code != CLIENT_SUCCESS)
-					return exit_code;*/
 				break;
 
 			case LEADERBOARD:
@@ -513,51 +506,6 @@ int translatePlayerMove(char* move)
 		return PAPER;
 	}
 }
-int computeWinner(int first_player_move, int  sec_player_move)
-{
-	//tie//
-	if (first_player_move = sec_player_move)
-		return 0;
-
-	else if (first_player_move == ROCK)
-	{
-		if ((sec_player_move == SCISSORS) || (sec_player_move == LIZARD))
-			return 1;
-		else return 2;
-	}
-	else if (first_player_move == PAPER)
-	{
-		if ((sec_player_move == ROCK) || (sec_player_move == SPOCK))
-			return 1;
-		else return 2;
-	}
-
-	else if (first_player_move == SCISSORS)
-	{
-		if ((sec_player_move == PAPER) || (sec_player_move == LIZARD))
-			return 1;
-		else return 2;
-	}
-
-	else if (first_player_move == LIZARD)
-	{
-		if ((sec_player_move == PAPER) || (sec_player_move == SPOCK))
-			return 1;
-		else return 2;
-	}
-
-	else if (first_player_move == SPOCK)
-	{
-		if ((sec_player_move == ROCK) || (sec_player_move == SCISSORS))
-			return 1;
-		else return 2;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
 
 int Play(SOCKET socket)
 {
@@ -623,7 +571,6 @@ int Play(SOCKET socket)
 	}
 }
 
-
 //The function gets file pointer to logfile, format char: Received from server/Send to server, and the message itself, and write it to logfile
 void WriteToLogFile(FILE *ptr, char *format, char *message) {
 	DWORD wait_code;
@@ -639,41 +586,6 @@ void WriteToLogFile(FILE *ptr, char *format, char *message) {
 	release_res = ReleaseMutex(logfile_mutex);
 	if (release_res == FALSE) printf("Fail releasing logfile mutex");
 }
-
-int PlayerVsPlayer(SOCKET socket)
-{
-	int exit_code;
-	BOOL start_game = FALSE;
-	char* oponent_name;
-
-	exit_code = SendClientVersusMessage(msg_queue);
-	if (exit_code != MSG_SUCCESS)
-		return CLIENT_TRNS_FAILED;
-
-	exit_code = GetStartGameMessage(&start_game, &oponent_name, socket);
-	if (exit_code != CLIENT_SUCCESS)
-	{
-		return exit_code;
-	}
-
-	if (!start_game)
-	{
-		printf("No oponents.\n");
-	}
-	else
-	{
-		printf("Starting play vs %s", oponent_name);
-		exit_code = Play(socket);
-		if (exit_code != CLIENT_SUCCESS)
-		{
-			return exit_code;
-		}
-	}
-
-	return CLIENT_SUCCESS;
-}
-
-
 
 int ViewLeaderBoard(SOCKET socket)
 {
@@ -758,7 +670,6 @@ int ViewLeaderBoard(SOCKET socket)
 		}
 	}
 }
-
 
 int GetLeaderBoardMessage(SOCKET socket)
 {
@@ -847,7 +758,6 @@ GAME_OVER_MENU_OPTIONS GetGameOverMenuChoice()
 
 	return user_choice;
 }
-
 
 GAME_OVER_MENU_OPTIONS ShowLeaderBoardMenuMessage()
 {
